@@ -16,6 +16,9 @@ app.post('/send-email', async (req, res) => {
     res.status(200).json({ message: 'Email sent successfully' });
   } catch (error) {
     console.error(error);
+    if (error.response && error.response.body && error.response.body.errors) {
+  console.error("SendGrid detailed errors:", JSON.stringify(error.response.body.errors, null, 2));
+}
     res.status(500).json({ error: error.message });
   }
 });
