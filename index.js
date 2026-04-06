@@ -10,7 +10,7 @@ dotenv.config();
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 8200;
+const PORT = process.env.PORT_SERVER || 8200;
 
 // Middleware setup
 app.use(express.json());
@@ -35,6 +35,7 @@ app.use((err, req, res, next) => {
 });
 // Database connection with retry logic
 const connectDB = async (retries = 3) => {
+    console.log("ENV CHECK:", process.env.MONGODB_URI_PROD);
     const dbURI = process.env.NODE_ENV === 'production' 
         ? process.env.MONGODB_URI_PROD 
         : process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/bookstore';
