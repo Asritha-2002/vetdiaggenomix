@@ -20,5 +20,9 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.error("Error: PORT environment variable not set. Exiting...");
+  process.exit(1);
+}
 app.listen(PORT, () => console.log(`Email service running on port ${PORT}`));
