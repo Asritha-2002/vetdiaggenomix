@@ -1,1 +1,0 @@
-var e=`/assets/footer-logo-CIwL3Fuc.png`;export{e as t};

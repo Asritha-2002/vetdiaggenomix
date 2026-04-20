@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-9YgKe2Eq.js";import{t}from"./react-CM_0bdEm.js";import{n,t as r}from"./Footer-Cj-sZn56.js";import{t as i}from"./BookAppointment-C8WePE88.js";t();var a=e(),o=()=>(0,a.jsxs)(`div`,{children:[(0,a.jsx)(n,{}),(0,a.jsx)(`div`,{className:`mt-16 lg:mt-20`,children:(0,a.jsx)(i,{})}),(0,a.jsx)(r,{})]});export{o as default};
