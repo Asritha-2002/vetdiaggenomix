@@ -1,0 +1,1 @@
+var e=`/assets/contactsectionbgc-1-dbl4mfIA.png`;export{e as t};

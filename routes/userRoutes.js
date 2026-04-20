@@ -10,14 +10,22 @@ const { auth } = require('../middleware/auth');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../config/email');
 const { validate } = require('../middleware/validate');
 const { userSchemas } = require('../validation/schemas');
+const { cartSchemas } = require("../validation/schemas");
+const Book = require('../models/Book');
+const Cart = require('../models/Cart')
+const CheckoutAddress=require('../models/CheckoutAddress').default
+const Voucher = require('../models/Voucher');
+const CheckoutSession=require('../models/CheckoutSession')
+const AdditionalCharges = require('../models/AdditionalCharges');
+
 
 // Register
 router.post('/register', 
   validate(userSchemas.register),
   async (req, res) => {
-    console.log("hii");
+   // console.log("hii");
     
-    console.log(req.body);
+   // console.log(req.body);
     
     try {
       const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -37,41 +45,87 @@ router.post('/register',
 );
 
 // Login
-router.post('/login',
+router.post(
+  "/login",
   validate(userSchemas.login),
   async (req, res) => {
     try {
-      const user = await User.findOne({ email: req.body.email });
-      if (!user) throw new Error('User not found');
+      const { email, password } = req.body;
+
+      // console.log("REQ:", req.body);
+
+      const user = await User.findOne({ email });
+
+      // ❌ FIX: check BEFORE using user
+      if (!user) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      // console.log("DB PASSWORD:", user.password);
 
       if (!user.isVerified) {
-        throw new Error('Please verify your email first');
-      }
-      if(!user.isActive) {
-        throw new Error('Your account is inactive, Please Contact Support');
+        return res.status(400).json({ message: "Please verify your email first" });
       }
 
-      const isMatch = await bcrypt.compare(req.body.password, user.password);
-      if (!isMatch) throw new Error('Invalid credentials');
+      if (!user.isActive) {
+        return res.status(400).json({
+          message: "Your account is inactive, Please Contact Support"
+        });
+      }
 
-      const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
-      res.json({ user, token });
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+
+      const token = jwt.sign(
+        {
+          id: user._id,
+          isAdmin: user.isAdmin,
+          email: user.email
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      const safeUser = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        gender: user.gender,
+        isAdmin: user.isAdmin,
+        isVerified: user.isVerified,
+        isActive: user.isActive
+      };
+
+      return res.json({
+        message: user.isAdmin
+          ? "Admin login successful"
+          : "User login successful",
+        token,
+        user: safeUser
+      });
+
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      return res.status(500).json({
+        message: error.message || "Something went wrong"
+      });
     }
   }
 );
 
 // Email verification
 router.get('/verify/:token', async (req, res) => {
-  console.log( req.params.token);
+ // console.log( req.params.token);
   
   try {
     const user = await User.findOne({ verificationToken: req.params.token});
-    console.log(user);
+   // console.log(user);
     
     if (!user) {
-      console.log("not");
+     // console.log("not");
       return res.status(400).json({ message: 'Invalid verification token' });
       
       
@@ -84,18 +138,18 @@ router.get('/verify/:token', async (req, res) => {
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
     res.status(400).json({ message: error.message });
-    console.log("hello");
+   // console.log("hello");
     
   }
 });
 
 // Change forgot password route
 router.post('/auth/forgot-password', async (req, res) => {
- console.log(req.body);
+//console.log(req.body);
   
   try {
     const {email} = req.body;
-    console.log(email);
+    //console.log(email);
     
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
@@ -114,7 +168,7 @@ router.post('/auth/forgot-password', async (req, res) => {
     await sendPasswordResetEmail(user.email, resetToken);
     res.json({ message: 'Password reset email sent' });
   } catch (error) {
-    console.error('Forgot password error:', error);
+    //console.error('Forgot password error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -143,7 +197,7 @@ router.post('/auth/reset-password', async (req, res) => {
 
     res.json({ message: 'Password reset successful' });
   } catch (error) {
-    console.error('Reset password error:', error);
+    //console.error('Reset password error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -167,94 +221,182 @@ router.post('/auth/verify-email', async (req, res) => {
 
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
-    console.error('Email verification error:', error);
+    //console.error('Email verification error:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
 // Get user's cart
-router.get('/cart', auth, async (req, res) => {
+router.get("/cart", auth, async (req, res) => {
   try {
-    let cart = await Cart.findOne({ user: req.user.id }).populate('items.book');
-    if (cart) {
-      cart.items = cart.items.filter(item => item.book !== null);
-      await cart.save();
-      await cart.populate('items.book');
-    }
+    let cart = await Cart.findOne({ user: req.user.id });
+
+    // ✅ If no cart → create empty cart
     if (!cart) {
-      cart = new Cart({ user: req.user.id, items: [] });
+      cart = new Cart({
+        user: req.user.id,
+        items: [],
+      });
+
       await cart.save();
     }
-    res.json(cart);
+
+    // ✅ Remove deleted products (important cleanup)
+    cart.items = cart.items.filter(item => item.book !== null);
+
+    // ✅ Populate after cleanup
+    await cart.populate("items.book");
+
+    res.status(200).json({
+      success: true,
+      data: cart,
+    });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch cart",
+      error: error.message,
+    });
   }
 });
 
 // Add to cart
-router.post('/cart', auth, async (req, res) => {
+router.post("/cart", auth, async (req, res) => {
   try {
-    const { bookId, quantity } = req.body;
+    // ✅ 1. Validate request
+    const { error, value } = cartSchemas.add.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message,
+      });
+    }
+
+    const { bookId, quantity } = value;
+
+    // ✅ 2. Check product exists
     const book = await Book.findById(bookId);
+
     if (!book) {
-      return res.status(404).json({ message: 'Book not found' });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
-    
+
+    // ✅ 3. Get or create cart
     let cart = await Cart.findOne({ user: req.user.id });
+
     if (!cart) {
-      cart = new Cart({ user: req.user.id, items: [] });
+      cart = new Cart({
+        user: req.user.id,
+        items: [],
+      });
     }
 
-    const existingItem = cart.items.find(item => item.book.toString() === bookId);
+    // ✅ 4. Check existing item
+    const existingItem = cart.items.find(
+      (item) => item.book.toString() === bookId
+    );
+
     if (existingItem) {
-      existingItem.quantity += quantity;
+      const newQuantity = existingItem.quantity + quantity;
+
+      // ✅ Stock check
+      if (book.stock < newQuantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${book.stock} items available in stock`,
+        });
+      }
+
+      // ✅ Update quantity
+      existingItem.quantity = newQuantity;
+
+      // ✅ OPTIONAL (Recommended): update latest price snapshot
+      existingItem.price = book.price;
+      existingItem.originalPrice = book.originalPrice;
+
     } else {
-      cart.items.push({ book: bookId, quantity });
+      // ✅ Stock check for new item
+      if (book.stock < quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${book.stock} items available in stock`,
+        });
+      }
+
+      // ✅ Add new item (IMPORTANT: include originalPrice)
+      cart.items.push({
+        book: book._id,
+        title: book.title,
+        price: book.price,
+        originalPrice: book.originalPrice, // ✅ FIXED
+        image: book.images?.[0]?.url || book.images?.[0],
+        quantity,
+      });
     }
 
+    // ✅ 5. Save cart (middleware handles totals)
     await cart.save();
-    await cart.populate('items.book');
-    res.json(cart);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+
+    // ✅ 6. Populate for frontend
+    await cart.populate("items.book");
+
+    // ✅ 7. Success response
+    res.status(200).json({
+      success: true,
+      message: "Product added to cart",
+      data: cart,
+    });
+
+  } catch (err) {
+    console.error("Add to cart error:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to add product to cart",
+      error: err.message, // ✅ helpful for debugging
+    });
   }
 });
 
 // Update cart item quantity
-router.patch('/cart/:itemId', auth, async (req, res) => {
+router.patch("/cart/:itemId", auth, async (req, res) => {
   try {
-    const quantity = Number(req.body.quantity);
-    
-    if (isNaN(quantity)) {
-      return res.status(400).json({ message: 'Invalid quantity value' });
-    }
+    const { action } = req.body; // "inc" or "dec"
 
     const cart = await Cart.findOne({ user: req.user.id });
-    
-    if (!cart) {
-      return res.status(404).json({ message: 'Cart not found' });
-    }
 
-    const itemIndex = cart.items.findIndex(item => 
-      item._id.toString() === req.params.itemId
+    if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+    const itemIndex = cart.items.findIndex(
+      (item) => item._id.toString() === req.params.itemId
     );
 
-    if (itemIndex === -1) {
-      return res.status(404).json({ message: 'Item not found in cart' });
+    if (itemIndex === -1)
+      return res.status(404).json({ message: "Item not found" });
+
+    if (action === "inc") {
+      cart.items[itemIndex].quantity += 1;
     }
 
-    if (quantity <= 0) {
-      cart.items.splice(itemIndex, 1);
-    } else {
-      cart.items[itemIndex].quantity = quantity;
+    if (action === "dec") {
+      cart.items[itemIndex].quantity -= 1;
+
+      if (cart.items[itemIndex].quantity <= 0) {
+        cart.items.splice(itemIndex, 1);
+      }
     }
 
     await cart.save();
-    await cart.populate('items.book');
+    await cart.populate("items.book");
+
     res.json(cart);
   } catch (error) {
-    console.error('Cart update error:', error);
-    res.status(400).json({ message: 'Failed to update cart item' });
+    res.status(400).json({ message: "Failed to update cart item" });
   }
 });
 
@@ -284,6 +426,7 @@ router.delete('/cart/:itemId', auth, async (req, res) => {
 }
 );
 
+
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
   try {
@@ -303,7 +446,7 @@ router.patch('/profile',
   auth,
   validate(userSchemas.updateProfile),
   async (req, res) => {
-    console.log(req.body);
+    //console.log(req.body);
     
     try {
       const user = await User.findById(req.user.id);
@@ -407,7 +550,6 @@ router.post('/addresses', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 
-    // Adjust required fields to match frontend
     const requiredFields = ['mobilenum','addl1','addl2','pincode', 'city', 'state'];
     for (const field of requiredFields) {
       if (!req.body[field] || req.body[field].trim() === "") {
@@ -415,19 +557,89 @@ router.post('/addresses', auth, async (req, res) => {
       }
     }
 
-    // Set first address as default
-    const isFirstAddress = user.addresses.length === 0;
+    // ➕ Add new address
     user.addresses.push({
       ...req.body,
-      isDefault: isFirstAddress
+      isDefault: false
+    });
+
+    // ✅ Set only 0th index as default
+    user.addresses.forEach((addr, index) => {
+      addr.isDefault = index === 0;
     });
 
     await user.save();
+
     res.json(user.addresses);
+
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
+
+// post checkout address
+router.post("/checkout-addresses", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const {
+      fullName,
+      mobileNumber,
+      addressLine1,
+      addressLine2,
+      landmark,
+      pincode,
+      city,
+      state,
+      type,
+    } = req.body;
+
+    // ✅ Validation (simple backend check)
+    const requiredFields = [
+      "fullName",
+      "mobileNumber",
+      "addressLine1",
+      "pincode",
+      "city",
+      "state",
+    ];
+
+    for (const field of requiredFields) {
+      if (!req.body[field] || req.body[field].trim() === "") {
+        return res.status(400).json({ message: `${field} is required` });
+      }
+    }
+
+    // ✅ Check if first address → make default
+    const existing = await CheckoutAddress.find({ userId });
+
+    const newAddress = new CheckoutAddress({
+      userId,
+      fullName,
+      mobileNumber,
+      addressLine1,
+      addressLine2,
+      landmark,
+      pincode,
+      city,
+      state,
+      type,
+      isDefault: existing.length === 0, // first one = default
+    });
+
+    await newAddress.save();
+
+    // ✅ return updated list
+    const addresses = await CheckoutAddress.find({ userId }).sort({
+      isDefault: -1,
+    });
+
+    res.status(201).json(addresses);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 // Get all addresses
 router.get('/addresses', auth, async (req, res) => {
@@ -439,34 +651,127 @@ router.get('/addresses', auth, async (req, res) => {
   }
 });
 
-// Update address
-router.patch('/addresses/:addressId', auth, async (req, res) => {
+//get checkout addresses
+router.get("/checkout-addresses", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    const address = user.addresses.id(req.params.addressId);
-    
-    if (!address) {
-      return res.status(404).json({ message: 'Address not found' });
-    }
+    const userId = req.user.id;
 
-    // Ensure contact number is present
-    if (!req.body.contactNumber && !address.contactNumber) {
-      return res.status(400).json({ message: 'Contact number is required' });
-    }
+    const addresses = await CheckoutAddress.find({ userId })
+      .sort({ isDefault: -1, createdAt: -1 }); // default first
 
-    // Update address fields while preserving existing values
-    Object.keys(req.body).forEach(key => {
-      if (req.body[key] !== undefined && req.body[key] !== '') {
-        address[key] = req.body[key];
-      }
+    res.status(200).json(addresses);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch checkout addresses",
+      error: error.message,
     });
+  }
+});
+
+// Update address
+router.patch('/addresses', auth, async (req, res) => {
+  try {
+    let { index, updatedAddress } = req.body;
+
+    //console.log("INDEX RECEIVED:", index);
+
+    const user = await User.findById(req.user.id);
+
+    const indexNum = Number(index);
+
+    // ✅ FIX: use addresses (plural)
+    if (
+      !Array.isArray(user.addresses) ||
+      indexNum < 0 ||
+      indexNum >= user.addresses.length
+    ) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // ✅ update correct array
+    user.addresses[indexNum] = {
+      ...user.addresses[indexNum].toObject(),
+      ...updatedAddress
+    };
 
     await user.save();
-    res.json(address);
+
+    res.json(user.addresses);
   } catch (error) {
+    //console.error(error);
     res.status(400).json({ message: error.message });
   }
 });
+
+//update checkout address
+router.put("/checkout-addresses/:id", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const addressId = req.params.id;
+
+    const {
+      fullName,
+      mobileNumber,
+      addressLine1,
+      addressLine2,
+      landmark,
+      pincode,
+      city,
+      state,
+      type,
+    } = req.body;
+
+    // ✅ Validation
+    const requiredFields = [
+      "fullName",
+      "mobileNumber",
+      "addressLine1",
+      "pincode",
+      "city",
+      "state",
+    ];
+
+    for (const field of requiredFields) {
+      if (!req.body[field] || req.body[field].trim() === "") {
+        return res.status(400).json({ message: `${field} is required` });
+      }
+    }
+
+    // ✅ Find & Update (only user's address)
+    const updatedAddress = await CheckoutAddress.findOneAndUpdate(
+      { _id: addressId, userId },
+      {
+        fullName,
+        mobileNumber,
+        addressLine1,
+        addressLine2,
+        landmark,
+        pincode,
+        city,
+        state,
+        type,
+      },
+      { new: true }
+    );
+
+    if (!updatedAddress) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // ✅ Return updated list
+    const addresses = await CheckoutAddress.find({ userId })
+      .sort({ isDefault: -1, createdAt: -1 });
+
+    res.status(200).json(addresses);
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update address",
+      error: error.message,
+    });
+  }
+});
+
 
 // Delete address
 router.delete('/addresses/:addressId', auth, async (req, res) => {
@@ -480,6 +785,48 @@ router.delete('/addresses/:addressId', auth, async (req, res) => {
   }
 });
 
+//update checkout address delete
+router.delete("/checkout-addresses/:id", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const addressId = req.params.id;
+
+    const deleted = await CheckoutAddress.findOneAndDelete({
+      _id: addressId,
+      userId,
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // ✅ If deleted was default → assign new default
+    if (deleted.isDefault) {
+      const firstAddress = await CheckoutAddress.findOne({ userId }).sort({
+        createdAt: -1,
+      });
+
+      if (firstAddress) {
+        firstAddress.isDefault = true;
+        await firstAddress.save();
+      }
+    }
+
+    // ✅ Return updated list
+    const addresses = await CheckoutAddress.find({ userId })
+      .sort({ isDefault: -1, createdAt: -1 });
+
+    res.status(200).json(addresses);
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete address",
+      error: error.message,
+    });
+  }
+});
+
+
 // Set default address
 router.post('/addresses/:addressId/default', auth, async (req, res) => {
   try {
@@ -490,6 +837,41 @@ router.post('/addresses/:addressId/default', auth, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+//set default checkout address
+// SET DEFAULT ADDRESS
+router.put("/checkout-addresses/default/:id", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const addressId = req.params.id;
+
+    // 1️⃣ Make all addresses false
+    await CheckoutAddress.updateMany(
+      { userId },
+      { $set: { isDefault: false } }
+    );
+
+    // 2️⃣ Set selected address as true
+    await CheckoutAddress.findByIdAndUpdate(addressId, {
+      isDefault: true,
+    });
+
+    // 3️⃣ Return updated list
+    const addresses = await CheckoutAddress.find({ userId }).sort({
+      isDefault: -1,
+      createdAt: -1,
+    });
+
+    res.status(200).json(addresses);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to set default address",
+      error: error.message,
+    });
+  }
+});
+
+// router.post()
 
 // Update user preferences
 router.patch('/preferences', auth, async (req, res) => {
@@ -513,6 +895,278 @@ router.get('/preferences', auth, async (req, res) => {
     res.json(user.preferences);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+
+//get all books
+router.get("/books", auth, async (req, res) => {
+  try {
+    const books = await Book.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: books.length,
+      data: books,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch books",
+      error: error.message,
+    });
+  }
+});
+
+// get specific book
+router.get("/books/:id", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const book = await Book.findById(id);
+
+    // If book not found
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: "Book not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: book,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch book",
+      error: error.message,
+    });
+  }
+});
+
+//related books
+
+router.get("/books/related/:id", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const currentProduct = await Book.findById(id);
+
+    if (!currentProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const relatedProducts = await Book.find({
+      category: currentProduct.category,
+      _id: { $ne: id }, // exclude current product
+    })
+      .limit(4) // 👈 important
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: relatedProducts,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch related products",
+      error: error.message,
+    });
+  }
+});
+
+
+//get all vouchers
+
+router.get("/vouchers", auth, async (req, res) => {
+  try {
+    const cartTotal = Number(req.query.cartTotal || 0);
+    const now = new Date();
+
+    const vouchers = await Voucher.find({
+      isActive: true,
+      expiryDate: { $gte: now },        // ❌ remove expired
+      minPurchase: { $lte: cartTotal }, // ❌ remove not eligible
+    }).sort({ createdAt: -1 });
+
+    const filtered = vouchers.filter(v => {
+      // extra safety check for usage limit
+      if (v.maxUses && v.usedCount >= v.maxUses) return false;
+      return true;
+    });
+
+    res.json({
+      success: true,
+      data: filtered,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+router.post("/checkout/start", auth, async (req, res) => {
+  try {
+    // 1. Get cart of user
+    const cart = await Cart.findOne({ user: req.user.id });
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
+
+    // 2. Create checkout session
+    const session = await CheckoutSession.create({
+      userId: req.user.id,
+      cartId: cart._id,
+      voucherId: null, // initially no voucher
+      status: "draft",
+    });
+
+    res.status(201).json({
+      message: "Checkout session created successfully",
+      data: session,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to create checkout session" });
+  }
+});
+
+
+router.patch("/checkout/voucher", auth, async (req, res) => {
+  try {
+    const { voucherId } = req.body;
+
+    // 🔍 find active checkout session for user
+    const session = await CheckoutSession.findOne({
+      userId: req.user.id,
+      status: "draft",
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Checkout session not found",
+      });
+    }
+
+    // 🟢 store or remove voucher
+    session.voucherId = voucherId || null;
+
+    await session.save();
+
+    res.json({
+      message: voucherId
+        ? "Voucher applied to checkout session"
+        : "Voucher removed from checkout session",
+      data: session,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to update checkout voucher",
+    });
+  }
+});
+
+router.get("/checkout/summary", auth, async (req, res) => {
+  try {
+    // 1. Get checkout session
+    const session = await CheckoutSession.findOne({
+      userId: req.user.id,
+      status: "draft",
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: "Checkout session not found" });
+    }
+
+    // 2. Get cart
+    const cart = await Cart.findById(session.cartId);
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    // 3. Get voucher (if applied)
+    let voucher = null;
+    let voucherDiscount = 0;
+
+    if (session.voucherId) {
+      voucher = await Voucher.findById(session.voucherId);
+
+      if (voucher) {
+        const totalAmount = cart.totalAmount;
+
+        if (voucher.type === "percentage") {
+          voucherDiscount = (totalAmount * voucher.value) / 100;
+        }
+
+        if (voucher.type === "fixed") {
+          voucherDiscount = voucher.value;
+        }
+
+        if (voucher.type === "complimentary") {
+          voucherDiscount = 0;
+        }
+      }
+    }
+
+    // 4. Cart values
+    const deliveryFee = 100;
+    const productDiscount = cart.totalOriginalAmount - cart.totalAmount;
+
+    const finalTotal =
+      cart.totalAmount + deliveryFee - voucherDiscount;
+
+    res.json({
+      cart,
+      voucher,
+      productDiscount,
+      voucherDiscount,
+      deliveryFee,
+      finalTotal,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to load summary" });
+  }
+});
+
+router.get("/charges/recent", auth, async (req, res) => {
+  try {
+    const charges = await AdditionalCharges.find({ isActive: true })
+      .sort({ createdAt: -1 });
+
+    // get latest delivery charge
+    const latestDelivery = charges.find(
+      (c) => c.chargeType === "delivery"
+    );
+
+    // get latest gst charge
+    const latestGST = charges.find(
+      (c) => c.chargeType === "gst"
+    );
+
+    res.status(200).json({
+      delivery: latestDelivery || null,
+      gst: latestGST || null,
+    });
+  } catch (error) {
+    console.error("Get Recent Charges Error:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch recent charges",
+      error: error.message,
+    });
   }
 });
 

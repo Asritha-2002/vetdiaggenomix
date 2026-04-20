@@ -1,0 +1,206 @@
+{
+    "shipping": {
+      "address": {
+        "street": "Vaddeswaram , Vijayawada",
+        "city": "Vijayawada",
+        "state": "Andhra Pradesh",
+        "zipCode": "522502",
+        "country": "India",
+        "contactNumber": "8332025885"
+      },
+      "method": "standard",
+      "cost": 200
+    },
+    "appliedVoucher": {
+      "voucher": {
+        "_id": "67f7711865116aae55590bd2",
+        "code": "DFGHUJIUY6",
+        "type": "fixed",
+        "value": 500,
+        "maxDiscount": null,
+        "maxUses": null,
+        "usedCount": 0,
+        "minPurchase": 1000,
+        "expiryDate": "2025-04-17T00:00:00.000Z",
+        "isActive": true,
+        "createdAt": "2025-04-10T07:19:52.257Z",
+        "updatedAt": "2025-04-10T07:24:26.424Z",
+        "__v": 0
+      },
+      "code": "DFGHUJIUY6",
+      "discountType": "fixed",
+      "discount": 500,
+      "complimentaryItems": []
+    },
+    "charges": {
+      "subtotal": 1745,
+      "gst": 0,
+      "paymentCharge": 100,
+      "deliveryCharge": 200,
+      "totalAmount": 1545
+    },
+    "payment": {
+      "status": "pending",
+      "method": "67ebc92c20e6a50a4663645a",
+      "razorpayOrderId": "order_QItc76TZmM24nB"
+    },
+    "orderDetails": {
+      "giftWrap": {
+        "required": false
+      },
+      "source": "web"
+    },
+    "_id": "67fcdbf17c42c06753022296",
+    "user": {
+      "preferences": {
+        "newsletter": true,
+        "orderUpdates": true,
+        "marketing": true,
+        "language": "en",
+        "currency": "INR"
+      },
+      "_id": "67edf46f01109b62b5b2f68c",
+      "name": "Charan",
+      "email": "charanvemula.p@gmail.com",
+      "password": "$2a$10$ZxJ9yBPRyXNjX5iEFqHLKOuG2SYJkgdzayYIe2neXpjmD6KhfTdFC",
+      "isAdmin": false,
+      "favorites": [],
+      "isVerified": true,
+      "verificationToken": "ca8567436e07eecb85590ee9fd49eec92198c0cbdb62040971fc72c0b7ac3033",
+      "addresses": [
+        {
+          "label": "Default",
+          "street": "Vaddeswaram , Vijayawada",
+          "city": "Vijayawada",
+          "state": "Andhra Pradesh",
+          "zipCode": "522502",
+          "country": "India",
+          "contactNumber": "8332025885",
+          "isDefault": true,
+          "_id": "67edf4da01109b62b5b2f749"
+        },
+        {
+          "label": "Shipping Address",
+          "street": "Vaddeswaram , Vijayawada",
+          "city": "Vijayawada",
+          "state": "Andhra Pradesh",
+          "zipCode": "522502",
+          "country": "India",
+          "contactNumber": "8332025885",
+          "isDefault": false,
+          "_id": "67eec28150618de3b2ef86c9"
+        }
+      ],
+      "createdAt": "2025-04-03T02:37:35.883Z",
+      "updatedAt": "2025-04-03T17:16:49.895Z",
+      "__v": 2
+    },
+    "items": [
+      {
+        "book": {
+          "statistics": {
+            "views": 79,
+            "purchases": 0,
+            "viewsHistory": [
+              {
+                "date": "2025-03-30T18:30:00.000Z",
+                "count": 28,
+                "_id": "67ea6868e8c2eccbb3b4300a"
+              },
+              {
+                "date": "2025-03-31T18:30:00.000Z",
+                "count": 6,
+                "_id": "67eb6c3027b9cba5924c7f4c"
+              },
+              {
+                "date": "2025-04-01T18:30:00.000Z",
+                "count": 16,
+                "_id": "67ecad3e5694e483422d3e74"
+              },
+              {
+                "date": "2025-04-02T18:30:00.000Z",
+                "count": 15,
+                "_id": "67ee662636853199d83ab85b"
+              },
+              {
+                "date": "2025-04-04T18:30:00.000Z",
+                "count": 5,
+                "_id": "67f14966dc3478e670d6a2ea"
+              },
+              {
+                "date": "2025-04-05T18:30:00.000Z",
+                "count": 2,
+                "_id": "67f26153eb4f0da6c495b8ec"
+              },
+              {
+                "date": "2025-04-06T18:30:00.000Z",
+                "count": 1,
+                "_id": "67f3f8f16cc540f19ac9a368"
+              },
+              {
+                "date": "2025-04-08T18:30:00.000Z",
+                "count": 1,
+                "_id": "67f6905325d6cf60e5847e93"
+              },
+              {
+                "date": "2025-04-09T18:30:00.000Z",
+                "count": 1,
+                "_id": "67f77e1d79b8fb821dded340"
+              },
+              {
+                "date": "2025-04-10T18:30:00.000Z",
+                "count": 2,
+                "_id": "67f87d8cd1aebc752e5d5589"
+              },
+              {
+                "date": "2025-04-11T18:30:00.000Z",
+                "count": 2,
+                "_id": "67fa4f76db21db41bd50962c"
+              }
+            ],
+            "lastViewed": "2025-04-12T11:41:27.243Z",
+            "purchaseHistory": [],
+            "revenue": 0
+          },
+          "_id": "67ea6521e8c2eccbb3b42fc0",
+          "title": "Dragon Books Set",
+          "productDetails": [
+            {
+              "label": "No.of Books ",
+              "value": "10",
+              "_id": "67f77e2379b8fb821dded34f"
+            },
+            {
+              "label": "Gsm",
+              "value": "80mm",
+              "_id": "67f77e2379b8fb821dded350"
+            }
+          ],
+          "description": "<!DOCTYPE html>\r\n<html lang=\"en\">\r\n<head>\r\n    <meta charset=\"UTF-8\">\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n    <title>Book Store - Products</title>\r\n    <script src=\"https://cdn.tailwindcss.com\"></script>\r\n    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css\">\r\n</head>\r\n<body class=\"bg-gray-50\">\r\n    <header class=\"bg-white shadow\">\r\n        <nav class=\"max-w-7xl mx-auto px-4 py-4 flex justify-between items-center",
+          "price": 349,
+          "stock": 57,
+          "isbn": "456ty",
+          "category": "Dragon",
+          "images": [
+            {
+              "url": "https://res.cloudinary.com/ds19jqe36/image/upload/v1743414560/ewl4uhhra2gkf3fthbit.jpg",
+              "public_id": "ewl4uhhra2gkf3fthbit",
+              "_id": "67ea6521e8c2eccbb3b42fc3"
+            }
+          ],
+          "videos": [],
+          "createdAt": "2025-03-31T09:49:21.367Z",
+          "updatedAt": "2025-04-14T09:57:06.345Z",
+          "__v": 13
+        },
+        "quantity": 5,
+        "price": 349,
+        "_id": "67fcdbf17c42c06753022297"
+      }
+    ],
+    "totalAmount": 1545,
+    "status": "pending",
+    "createdAt": "2025-04-14T09:57:05.117Z",
+    "updatedAt": "2025-04-14T09:57:06.337Z",
+    "__v": 0
+  }

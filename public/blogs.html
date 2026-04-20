@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - VetDiag</title>
+    <script src="./js/tailwindcss.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <div id="header-container"></div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Our Blog</h1>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Stay updated with the latest insights, tips, and news from our experts
+            </p>
+        </div>
+
+        <!-- Featured Blog -->
+        <div id="featured-blog" class="mb-16">
+            <!-- Featured blog will be loaded here -->
+        </div>
+
+        <!-- Filter and Search -->
+        <div class="flex flex-col md:flex-row gap-4 mb-8">
+            <div class="flex-1">
+                <input type="text" id="blog-search" 
+                       placeholder="Search blogs..." 
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <select id="tag-filter" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Categories</option>
+                    <!-- Tags will be loaded dynamically -->
+                </select>
+            </div>
+        </div>
+
+        <!-- Blog Grid -->
+        <div id="blogs-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            <!-- Blog cards will be loaded here -->
+        </div>
+
+        <!-- Load More Button -->
+        <div class="text-center">
+            <button id="load-more-btn" 
+                    class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors hidden">
+                Load More Posts
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12 hidden">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Loading blogs...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="text-center py-12 hidden">
+            <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-blog text-3xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No blogs found</h3>
+            <p class="text-gray-500">Try adjusting your search or filter criteria.</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer-container"></div>
+
+    <!-- Blog Detail Modal -->
+    <div id="blog-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div id="blog-detail-content">
+                    <!-- Blog detail content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class BlogsPage {
+            constructor() {
+                this.currentPage = 1;
+                this.blogsPerPage = 9;
+                this.currentTag = '';
+                this.currentSearch = '';
+                this.hasMoreBlogs = true;
+                this.isLoading = false;
+                this.init();
+            }
+
+            init() {
+                this.loadHeader();
+                this.loadFooter();
+                this.setupEventListeners();
+                this.loadTags();
+                this.loadFeaturedBlog();
+                this.loadBlogs();
+            }
+
+            async loadHeader() {
+                try {
+                    const response = await fetch('/components/header.html');
+                    const html = await response.text();
+                    document.getElementById('header-container').innerHTML = html;
+                } catch (error) {
+                    console.error('Error loading header:', error);
+                }
+            }
+
+            async loadFooter() {
+                try {
+                    const response = await fetch('/components/footer.html');
+                    const html = await response.text();
+                    document.getElementById('footer-container').innerHTML = html;
+                } catch (error) {
+                    console.error('Error loading footer:', error);
+                }
+            }
+
+            setupEventListeners() {
+                // Search
+                const searchInput = document.getElementById('blog-search');
+                let searchTimeout;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        this.currentSearch = e.target.value;
+                        this.resetAndLoad();
+                    }, 500);
+                });
+
+                // Tag filter
+                document.getElementById('tag-filter').addEventListener('change', (e) => {
+                    this.currentTag = e.target.value;
+                    this.resetAndLoad();
+                });
+
+                // Load more
+                document.getElementById('load-more-btn').addEventListener('click', () => {
+                    this.loadMoreBlogs();
+                });
+
+                // Modal close
+                document.getElementById('blog-modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'blog-modal') {
+                        this.closeBlogModal();
+                    }
+                });
+            }
+
+            async loadTags() {
+                try {
+                    const response = await fetch('/api/blogs/tags/list');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const select = document.getElementById('tag-filter');
+                        result.data.forEach(tag => {
+                            const option = document.createElement('option');
+                            option.value = tag;
+                            option.textContent = tag.charAt(0).toUpperCase() + tag.slice(1);
+                            select.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading tags:', error);
+                }
+            }
+
+            async loadFeaturedBlog() {
+                try {
+                    const response = await fetch('/api/blogs?featured=true&limit=1');
+                    const result = await response.json();
+                    
+                    if (result.success && result.data.blogs.length > 0) {
+                        const blog = result.data.blogs[0];
+                        this.renderFeaturedBlog(blog);
+                    }
+                } catch (error) {
+                    console.error('Error loading featured blog:', error);
+                }
+            }
+
+            renderFeaturedBlog(blog) {
+                const container = document.getElementById('featured-blog');
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <div class="md:flex">
+                            <div class="md:w-1/2">
+                                <img src="${blog.images.main}" alt="${blog.heading}" 
+                                     class="w-full h-64 md:h-full object-cover">
+                            </div>
+                            <div class="md:w-1/2 p-8">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                                        Featured
+                                    </span>
+                                    <span class="text-gray-500 text-sm">
+                                        ${new Date(blog.publishedAt).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <h2 class="text-3xl font-bold text-gray-900 mb-4">${blog.heading}</h2>
+                                <p class="text-gray-600 mb-6 line-clamp-3">${blog.context}</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-wrap gap-2">
+                                        ${blog.tags.slice(0, 3).map(tag => `
+                                            <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
+                                                ${tag}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                    <button onclick="blogsPage.openBlogModal('${blog.slug}')" 
+                                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                        Read More
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async loadBlogs(append = false) {
+                if (this.isLoading) return;
+                
+                this.isLoading = true;
+                this.showLoading();
+
+                try {
+                    const params = new URLSearchParams({
+                        page: this.currentPage,
+                        limit: this.blogsPerPage
+                    });
+
+                    if (this.currentTag) params.append('tag', this.currentTag);
+                    if (this.currentSearch) params.append('search', this.currentSearch);
+
+                    const response = await fetch(`/api/blogs?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const blogs = result.data.blogs;
+                        this.hasMoreBlogs = result.data.pagination.hasNext;
+                        
+                        if (append) {
+                            this.appendBlogs(blogs);
+                        } else {
+                            this.renderBlogs(blogs);
+                        }
+                        
+                        this.updateLoadMoreButton();
+                    } else {
+                        this.showEmptyState();
+                    }
+                } catch (error) {
+                    console.error('Error loading blogs:', error);
+                    this.showEmptyState();
+                } finally {
+                    this.isLoading = false;
+                    this.hideLoading();
+                }
+            }
+
+            renderBlogs(blogs) {
+                const container = document.getElementById('blogs-grid');
+                
+                if (blogs.length === 0) {
+                    this.showEmptyState();
+                    return;
+                }
+
+                container.innerHTML = blogs.map(blog => this.createBlogCard(blog)).join('');
+                this.hideEmptyState();
+            }
+
+            appendBlogs(blogs) {
+                const container = document.getElementById('blogs-grid');
+                const newCards = blogs.map(blog => this.createBlogCard(blog)).join('');
+                container.insertAdjacentHTML('beforeend', newCards);
+            }
+
+            createBlogCard(blog) {
+                return `
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                        <img src="${blog.images.main}" alt="${blog.heading}" 
+                             class="w-full h-48 object-cover">
+                        <div class="p-6">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-gray-500 text-sm">
+                                    ${new Date(blog.publishedAt).toLocaleDateString()}
+                                </span>
+                                <span class="text-gray-300">•</span>
+                                <span class="text-gray-500 text-sm">
+                                    <i class="fas fa-eye mr-1"></i>${blog.views}
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-3">${blog.heading}</h3>
+                            <p class="text-gray-600 mb-4 line-clamp-3">${blog.context}</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex flex-wrap gap-1">
+                                    ${blog.tags.slice(0, 2).map(tag => `
+                                        <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
+                                            ${tag}
+                                        </span>
+                                    `).join('')}
+                                    ${blog.tags.length > 2 ? `<span class="text-gray-400 text-xs">+${blog.tags.length - 2}</span>` : ''}
+                                </div>
+                                <button onclick="blogsPage.openBlogModal('${blog.slug}')" 
+                                        class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                                    Read More →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async openBlogModal(slug) {
+                try {
+                    const response = await fetch(`/api/blogs/${slug}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.renderBlogModal(result.data);
+                        document.getElementById('blog-modal').classList.remove('hidden');
+                        document.body.style.overflow = 'hidden';
+                    }
+                } catch (error) {
+                    console.error('Error loading blog details:', error);
+                }
+            }
+
+            renderBlogModal(blog) {
+                const container = document.getElementById('blog-detail-content');
+                container.innerHTML = `
+                    <div class="relative">
+                        <button onclick="blogsPage.closeBlogModal()" 
+                                class="absolute top-4 right-4 z-10 w-10 h-10 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-colors">
+                            <i class="fas fa-times text-gray-600"></i>
+                        </button>
+                        <img src="${blog.images.main}" alt="${blog.heading}" 
+                             class="w-full h-64 object-cover">
+                        <div class="p-8">
+                            <div class="flex items-center gap-4 mb-6 text-sm text-gray-500">
+                                <span>${new Date(blog.publishedAt).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span><i class="fas fa-eye mr-1"></i>${blog.views} views</span>
+                                <span>•</span>
+                                <span>By ${blog.author}</span>
+                            </div>
+                            <h1 class="text-3xl font-bold text-gray-900 mb-6">${blog.heading}</h1>
+                            <div class="prose max-w-none mb-8">
+                                ${blog.context.replace(/\n/g, '</p><p>')}
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                ${blog.tags.map(tag => `
+                                    <span class="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                                        ${tag}
+                                    </span>
+                                `).join('')}
+                            </div>
+                            <img src="${blog.images.sub}" alt="Additional image" 
+                                 class="w-full h-64 object-cover rounded-lg">
+                        </div>
+                    </div>
+                `;
+            }
+
+            closeBlogModal() {
+                document.getElementById('blog-modal').classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+
+            loadMoreBlogs() {
+                this.currentPage++;
+                this.loadBlogs(true);
+            }
+
+            resetAndLoad() {
+                this.currentPage = 1;
+                this.hasMoreBlogs = true;
+                this.loadBlogs();
+            }
+
+            updateLoadMoreButton() {
+                const btn = document.getElementById('load-more-btn');
+                if (this.hasMoreBlogs) {
+                    btn.classList.remove('hidden');
+                } else {
+                    btn.classList.add('hidden');
+                }
+            }
+
+            showLoading() {
+                document.getElementById('loading').classList.remove('hidden');
+            }
+
+            hideLoading() {
+                document.getElementById('loading').classList.add('hidden');
+            }
+
+            showEmptyState() {
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('blogs-grid').innerHTML = '';
+            }
+
+            hideEmptyState() {
+                document.getElementById('empty-state').classList.add('hidden');
+            }
+        }
+
+        // Initialize blogs page
+        const blogsPage = new BlogsPage();
+    </script>
+</body>
+</html>

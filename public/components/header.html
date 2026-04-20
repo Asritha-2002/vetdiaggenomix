@@ -1,0 +1,45 @@
+<header class="fixed w-full z-50 glass-effect shadow-lg">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+            <!-- Logo -->
+            <a href="/" class="flex items-center gap-3">
+                <img src="https://www.vetdiaggenomix.com/assets/img/ICON%2001.png" alt="Logo" class="h-8 w-8 rounded-lg"/>
+                <span class="font-medium text-red-600 text-lg">Vrishadhvaja</span>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/" class="text-gray-700 hover:text-red-600 transition-colors">Home</a>
+                <a href="/products.html" class="text-gray-700 hover:text-red-600 transition-colors">Products</a>
+                <a href="/#about" class="text-gray-700 hover:text-red-600 transition-colors">About</a>
+                <a href="/#contact" class="text-gray-700 hover:text-red-600 transition-colors">Contact</a>
+            </nav>
+
+            <!-- User Actions -->
+            <div class="flex items-center gap-4">
+                <button class="text-gray-700 hover:text-red-600">
+                    <i class="fas fa-search text-xl"></i>
+                </button>
+                <button id="auth-button" onclick="toggleModal('login-modal')" class="text-gray-700 hover:text-red-600">
+                    <i class="fas fa-user text-xl"></i>
+                </button>
+                <button onclick="toggleCart()" class="text-gray-700 hover:text-red-600 relative">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                </button>
+                <button class="md:hidden text-gray-700 hover:text-red-600" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+        <nav class="px-4 py-2">
+            <a href="/" class="block py-2 text-gray-700 hover:text-red-600">Home</a>
+            <a href="/products.html" class="block py-2 text-gray-700 hover:text-red-600">Products</a>
+            <a href="/#about" class="block py-2 text-gray-700 hover:text-red-600">About</a>
+            <a href="/#contact" class="block py-2 text-gray-700 hover:text-red-600">Contact</a>
+        </nav>
+    </div>
+</header>

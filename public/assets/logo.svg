@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#ffffff" rx="40"/>
+  
+  <!-- Modern Book Shape -->
+  <path fill="#ffffff" d="M45,40 h110 a10,10 0 0,1 10,10 v100 a10,10 0 0,1 -10,10 h-110 a10,10 0 0,1 -10,-10 v-100 a10,10 0 0,1 10,-10 z"/>
+  
+  <!-- Abstract Lines -->
+  <g stroke="#ef4444" stroke-width="3" stroke-linecap="round">
+    <line x1="60" y1="70" x2="140" y2="70" />
+    <line x1="60" y1="100" x2="140" y2="100" />
+    <line x1="60" y1="130" x2="110" y2="130" />
+  </g>
+  
+  <!-- Decorative Element -->
+  <circle cx="150" cy="50" r="8" fill="#ef4444"/>
+</svg>

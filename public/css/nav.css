@@ -1,0 +1,33 @@
+.glass-effect {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+ .cart-sidebar {
+    top: 4rem; /* Add space below header */
+    height: calc(100vh - 4rem); /* Adjust height to account for header */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-left: 1px solid rgba(239, 68, 68, 0.1);
+}
+
+.cart-item {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.cart-item:hover {
+    transform: translateX(-4px);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.cart-checkout-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    transition: all 0.3s ease;
+}
+
+.cart-checkout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}   

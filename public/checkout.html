@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Books E-Commerce</title>
+    <script src="./js/tailwindcss.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link rel="stylesheet" href="/css/nav.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* ...existing styles... */
+        
+        #complimentary-modal {
+            backdrop-filter: blur(4px);
+        }
+        
+        #eligible-items {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        }
+        
+        #eligible-items::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #eligible-items::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        #eligible-items::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+
+        /* Loader styles */
+        .loader-container {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #dc2626;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Add loader -->
+    <div id="page-loader" class="loader-container">
+        <div class="loader"></div>
+        <p class="mt-4 text-gray-600">Loading your checkout...</p>
+    </div>
+
+    <header class="fixed w-full z-30 glass-effect shadow-lg mb-10">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="/" class="flex items-center gap-3">
+                    <img src="https://www.vetdiaggenomix.com/assets/img/ICON%2001.png" alt="Logo" class="h-8 w-8 rounded-lg"/>
+                    <span class="font-medium text-red-600 text-lg">VetDiag Genomix</span>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="/" class="text-gray-700 hover:text-red-600 transition-colors">Home</a>
+                    <a href="/products" class="text-gray-700 hover:text-red-600 transition-colors">Products</a>
+                    <a href="/about" class="text-gray-700 hover:text-red-600 transition-colors">About</a>
+                    <a href="/contact" class="text-gray-700 hover:text-red-600 transition-colors">Contact</a>
+                </nav>
+
+                <!-- User Actions -->
+                <div class="flex items-center gap-4">
+                    
+                    <button id="auth-button" onclick="toggleModal('login-modal')" class="text-gray-700 hover:text-red-600">
+                        <i class="fas fa-user text-xl"></i>
+                    </button>
+                   
+                    <button class="md:hidden text-gray-700 hover:text-red-600" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+            <nav class="px-4 py-2">
+                <a href="/" class="block py-2 text-gray-700 hover:text-red-600">Home</a>
+                <a href="/products" class="block py-2 text-gray-700 hover:text-red-600">Products</a>
+                <a href="/about" class="block py-2 text-gray-700 hover:text-red-600">About</a>
+                <a href="/contact" class="block py-2 text-gray-700 hover:text-red-600">Contact</a>
+            </nav>
+        </div>
+    </header>
+    <!-- Add nav section -->
+   
+
+    
+
+    <div class="min-h-screen">
+        
+        <main class="max-w-7xl mx-auto py-16 px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Order Summary -->
+                <div class="md:col-span-2 space-y-6">
+                    <h2 class="text-2xl font-bold">Order Summary</h2>
+                    <div id="cart-items" class="space-y-4"></div>
+
+                    <!-- Voucher Section -->
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h3 class="text-lg font-semibold mb-4">Available Vouchers</h3>
+                        <div id="available-vouchers" class="mb-4">
+                            <!-- Vouchers will be loaded here -->
+                        </div>
+                        
+                        <div class="border-t pt-4">
+                            <div class="flex gap-2 mb-2" style="display:none">
+                                <input type="text" id="voucher-code" 
+                                       class="flex-1 border rounded px-3 py-2" 
+                                       placeholder="Enter voucher code">
+                                <button onclick="applyVoucher()" 
+                                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                                    Apply
+                                </button>
+                            </div>
+                            <div id="voucher-message" class="min-h-[20px] text-sm"></div>
+                            <div id="voucher-details" class="mt-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Options -->
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h3 class="text-lg font-semibold mb-4">Delivery Method</h3>
+                        <div class="space-y-3" id="delivery-options">
+                            <!-- Delivery options will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Payment Options -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-4">Payment Method</h3>
+                        <div class="space-y-3" id="payment-options">
+                            <!-- Payment options will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Shipping Address -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-4">Shipping Address</h3>
+                        
+                        <!-- Saved Addresses Dropdown -->
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">Select Saved Address</label>
+                            <select id="saved-addresses" class="w-full border rounded px-3 py-2 mb-2">
+                                <option value="">Enter New Address</option>
+                            </select>
+                        </div>
+
+                        <form id="shipping-form" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="text" name="street" required placeholder="Street Address" 
+                                       class="col-span-2 border rounded px-3 py-2">
+                                <input type="text" name="city" required placeholder="City" 
+                                       class="border rounded px-3 py-2">
+                                <input type="text" name="state" required placeholder="State" 
+                                       class="border rounded px-3 py-2">
+                                <input type="text" name="zipCode" required placeholder="ZIP Code" 
+                                       class="border rounded px-3 py-2">
+                                <input type="text" name="country" required placeholder="Country" 
+                                       class="border rounded px-3 py-2">
+                                <input type="tel" name="contactNumber" required placeholder="Contact Number" 
+                                       class="col-span-2 border rounded px-3 py-2">
+                            </div>
+                            <!-- Save Address Checkbox -->
+                            <div class="flex items-center mt-4">
+                                <input type="checkbox" id="save-address" class="mr-2">
+                                <label for="save-address">Save this address for future use</label>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Order Total -->
+                <div class="bg-white p-6 rounded-lg shadow-md h-fit sticky top-4">
+                    <h3 class="text-lg font-semibold mb-4">Order Total</h3>
+                    <div class="space-y-2 text-sm border-b pb-4 mb-4">
+                        <div class="flex justify-between">
+                            <span>Subtotal</span>
+                            <span id="subtotal">₹0.00</span>
+                        </div>
+                        <span id="tax"></span>
+                        <div class="flex justify-between">
+                            <span>Payment Charge </span>
+                            <span id="payment-charge">₹0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Delivery Charge</span>
+                            <span id="delivery-charge">₹0.00</span>
+                        </div>
+                        <div class="flex justify-between text-red-600">
+                            <span>Discount</span>
+                            <span id="discount">-₹0.00</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total</span>
+                        <span id="total">₹0.00</span>
+                    </div>
+                    <button onclick="placeOrder()" 
+                            class="w-full mt-6 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700">
+                        Place Order
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/checkout.js"></script>
+    <script src="/js/nav.js"></script>
+    <script>
+        // Hide loader once everything is loaded
+        window.addEventListener('load', function() {
+            document.getElementById('page-loader').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

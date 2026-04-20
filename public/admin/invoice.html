@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Invoice</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    padding: 10px;
+    color: #333;
+    overflow: auto;
+}
+
+body::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    padding-right: 15px;
+}   
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 8px;
+            word-wrap: break-word;
+        }
+        th {
+            background-color: #f2f3f4;
+            font-weight: bold;
+            text-align: left;
+            border-bottom: 2px solid #000;
+            border-top: 2px solid #000;
+        }
+        td {
+            vertical-align: top;
+            text-align: left;
+        }
+        .header {
+            font-size: 26px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 10px 0;
+            border-bottom: 2px solid #000;
+        }
+        .bold {
+            font-weight: bold;
+            color: #000;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .signature-space {
+            height: 120px;
+            border: 1px dashed #000;
+            font-style: italic;
+            font-size: 14px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+        }
+        .subtotal-row, .total-row {
+            font-weight: bold;
+        }
+        .grand-total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+            border-top: 2px solid #000;
+        }
+        .seper {
+            border-top: 1px solid #000;
+        }
+        .seper2 {
+            border-top: 2px solid #000;
+        }
+        img.qr-code {
+            width: 80px;
+            height: 80px;
+        }
+        .policy {
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #000000;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+        /* Print-specific styles */
+        @media print {
+            body {
+                margin: 0;
+            }
+            table {
+                width: 98%; /* Adjust width for printing */
+            }
+            th, td {
+                font-size: 12px;
+                padding: 5px;
+            }
+            .header {
+                font-size: 20px;
+                padding: 5px;
+            }
+            .policy {
+                font-size: 10px;
+                line-height: 1.2;
+            }
+            .grand-total {
+                font-size: 16px;
+            }
+        }
+        .back-button-container {
+    display: inline-block;
+    margin: 8px;
+}
+
+.back-button {
+    background-color: #4b5563;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.back-button:hover {
+    background-color: #1f2937;
+}
+
+    </style>
+</head>
+<body>
+  <!-- add a back button -->
+  <!-- <div class="back-button-container">
+    <a href="#" onclick="window.history.back()" class="back-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+        </svg>
+    </a>
+</div> -->
+
+  <div id="invoice-container"></div>
+    <button onclick="printInvoiceContainer()">Print Invoice</button>
+        
+    <script>
+        const indianStates = {"AP":"Andhra Pradesh","AR":"Arunachal Pradesh","AS":"Assam","BR":"Bihar","CG":"Chhattisgarh","GA":"Goa","GJ":"Gujarat","HR":"Haryana","HP":"Himachal Pradesh","JH":"Jharkhand","KA":"Karnataka","KL":"Kerala","MP":"Madhya Pradesh","MH":"Maharashtra","MN":"Manipur","ML":"Meghalaya","MZ":"Mizoram","NL":"Nagaland","OD":"Odisha","PB":"Punjab","RJ":"Rajasthan","SK":"Sikkim","TN":"Tamil Nadu","TS":"Telangana","TR":"Tripura","UP":"Uttar Pradesh","UK":"Uttarakhand","WB":"West Bengal","AN":"Andaman and Nicobar Islands","CH":"Chandigarh","DN":"Dadra and Nagar Haveli and Daman and Diu","DL":"Delhi","JK":"Jammu and Kashmir","LA":"Ladakh","LD":"Lakshadweep","PY":"Puducherry"};
+
+        const DEFAULT_SHOP_DETAILS = {
+            "Store Name": "VetDiag Genomix",
+            "Store Address": "Rattaiah Gari Gudowns, D. No: 6-2-773, Tadigadapa donka road, Vijayawada Krishna district, 521137",
+            "GSTIN": "29AABCU9603R1ZJ",
+            "Support Email": "support@vrishadhvaja.com",
+            "Support Phone": "+91-9876543210"
+        };
+
+        // Add global variables
+        let orderData;
+        let paymentData;
+        let storeDetails;
+
+        async function fetchOrderDetails() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('orderId');
+            
+            if (!orderId) {
+                alert('No order ID provided');
+                return null;
+            }
+
+            try {
+                const response = await fetch(`/api/orders/ad/${orderId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch order details');
+                }
+
+                const order = await response.json();
+                return {
+                    orderData: {
+                        address: {
+                            name: order.shipping.address.name,
+                            addressLine: order.shipping.address.street,
+                            locality: order.shipping.address.city,
+                            city: order.shipping.address.city,
+                            state: order.shipping.address.state,
+                            pincode: order.shipping.address.zipCode,
+                            mobile: order.shipping.address.contactNumber,
+                            alternateMobile: order.shipping.address.alternateContact || '',
+                            deliveryNote: order.shipping.address.specialInstructions || ''
+                        },
+                        name: order.user.name,
+                        cid: order.user.email,
+                        id: order._id,
+                        products: order.items.map(item => ({
+                            name: item.name,
+                            originalPrice: item.originalPrice,
+                            price: item.price,
+                            quantity: item.quantity,
+                            total: item.price * item.quantity
+                        })),
+                        total: order.totalAmount,
+                        createdOn: new Date(order.createdAt).getTime()
+                    },
+                    paymentData: {
+                        otherInfo: [{
+                            value: {
+                                tax: order.charges.gst,
+                                dc: order.charges.deliveryCharge,
+                                pc: order.charges.paymentCharge,
+                                ftp: order.totalAmount,
+                                voucherDiscount: order.appliedVoucher.discount || 0,
+                            }
+                        }],
+                        pgInfo: order.payment.razorpayOrderId ? {
+                            payload: {
+                                payment: {
+                                    entity: {
+                                        method: order.payment.method || 'Online'
+                                    }
+                                }
+                            }
+                        } : null
+                    }
+                };
+            } catch (error) {
+                console.error('Error fetching order:', error);
+                alert('Failed to fetch order details');
+                return null;
+            }
+        }
+
+        async function init() {
+            const orderDetails = await fetchOrderDetails();
+            if (!orderDetails) return;
+
+            // Set global variables
+            orderData = orderDetails.orderData;
+            console.log(orderData)
+            paymentData = orderDetails.paymentData;
+            storeDetails = [
+                { id: 'Store Name', value: DEFAULT_SHOP_DETAILS["Store Name"] },
+                { id: 'Store Address', value: DEFAULT_SHOP_DETAILS["Store Address"] },
+                { id: 'GSTIN', value: DEFAULT_SHOP_DETAILS["GSTIN"] }
+            ];
+
+            // Set page title after orderData is available
+            document.title = orderData.id;
+            
+            // Generate invoice after data is ready
+            generateInvoice();
+        }
+
+        function generateInvoice() {
+            const invoiceContainer = document.getElementById('invoice-container');
+            const payDetails = paymentData.otherInfo[0].value;
+            const address = orderData.address;
+            let subtotal = 0;
+            console.log(orderData)
+            const gstRate = (payDetails.tax / orderData.products.reduce((sum, p) => sum + p.total, 0)) * 100;
+            const url = `https://vrishadhvajanotebooks.com/`
+            invoiceContainer.innerHTML = `
+                <div class="header">Invoice</div>
+<table>
+    <tr>
+        <td colspan="6">
+            <p><span class="bold">Sold By:</span> ${storeDetails.find(s => s.id === 'Store Name').value}</p>
+            <p><span class="bold">Address:</span> ${storeDetails.find(s => s.id === 'Store Address').value}</p>
+            ${storeDetails.find(s => s.id === 'GSTIN').value && `<p><span class="bold">GSTIN:</span> ${storeDetails.find(s => s.id === 'GSTIN').value}</p>`}
+        </td>
+        <td colspan="3" class="text-right">
+            <img class="qr-code" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}" alt="QR Code">
+        </td>
+    </tr>
+    <tr class="seper2">
+        <td colspan="3">
+            <p><span class="bold">Order ID:</span> ${orderData.id}</p>
+            <p><span class="bold">Order Date:</span> ${new Date(parseInt(orderData.createdOn)).toISOString().split('T')[0]}</p>
+            <p><span class="bold">Payment Method:</span> ${paymentData.pgInfo ? paymentData.pgInfo.payload.payment.entity.method : 'Cash on Delivery'}</p>
+        </td>
+        <td colspan="2">
+            <p><span class="bold">Bill To:</span></p>
+            <p>${orderData.name}<br>${address.addressLine}, ${address.locality}, ${address.city}, ${address.state}, ${address.pincode}<br>
+            <span class="bold">Phone:</span> ${address.mobile}<br>
+            <span class="bold">Email:</span> ${orderData.cid}</p>
+        </td>
+        <td colspan="2">
+            <p><span class="bold">Ship To:</span></p>
+            <p>${orderData.name}<br>${address.addressLine}, ${address.locality}, ${address.city}, ${address.state}, ${address.pincode}<br>
+            <span class="bold">Phone:</span> ${address.mobile}
+            <br><span class="bold">Alternate Phone:</span> ${address.alternateMobile}</br>
+            <span class="bold">Delivery Note:</span> ${address.deliveryNote}</p>
+        </td>
+        <td colspan="2">
+            <p><span class="bold">*** Keep this invoice for your records ***</span></p>
+        </td>
+    </tr>
+    <tr>
+        <th>Product Title</th>
+        <th>Unit Price</th>
+        <th>Qty</th>
+        <th>Gross</th>
+        <th>Discount</th>
+        <th>Taxable</th>
+        <th colspan="2">GST <span style="font-size: 10px;">(${gstRate.toFixed(1)}%)</span></th>
+        <th>Total</th>
+    </tr>
+    
+    ${orderData.products.map(product => `
+    <span style="display: none;">${subtotal += product.total + product.total * gstRate / 100}</span>
+        <tr>
+            <td>${product.name}</td>
+            <td>₹&nbsp;${Number(product.price).toFixed(2)}</td>
+            <td>${product.quantity}</td>
+            <td>₹&nbsp;${(product.price * product.quantity).toFixed(2)}</td>
+            <td>₹&nbsp;${(product.price * product.quantity - product.total).toFixed(2)}</td>
+            <td>₹&nbsp;${product.total.toFixed(2)}</td>
+            <td colspan="2">₹&nbsp;${(product.total * gstRate / 100).toFixed(2)}</td>
+            <td>₹&nbsp;${(product.total * (1 + gstRate/100)).toFixed(2)}</td>
+        </tr>
+    `).join('')}
+    <tr><td colspan="9"></td></tr>
+    <tr class="subtotal-row">
+        <td colspan="6"></td>
+        <td colspan="2" class="text-right seper">Subtotal :</td>
+        <td class="seper">₹&nbsp;${subtotal.toFixed(2)}</td>
+    </tr>
+
+    <tr>
+        <td colspan="6"></td>
+        <td colspan="2" class="text-right">Voucher Discount :</td>
+        <td>₹&nbsp;${payDetails.voucherDiscount.toFixed(2)}</td>
+    </tr>
+
+    <tr>
+        <td colspan="6"></td>
+        <td colspan="2" class="text-right">Additional Charges :</td>
+        <td>₹&nbsp;${(payDetails.dc + payDetails.pc).toFixed(2)}</td>
+    </tr>
+    <tr>
+        <td colspan="6"></td>
+        <td colspan="2" class="text-right grand-total">Grand Total :</td>
+        <td class="grand-total">₹&nbsp;${payDetails.ftp.toFixed(2)}</td>
+    </tr>
+    <tr>
+        <td colspan="5"></td>
+        <td colspan="4" class="no-border">
+            <div class="signature-space">Authorized Signature</div>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="9">
+            <p class="policy">
+                <span class="bold">Policy:</span> Returns accepted within 30 days. Refunds processed within 7-10 working days.
+                <br><span class="bold">Contact:</span> support@company.com | +91-9876543210
+            </p>
+        </td>
+    </tr>
+</table>
+
+            `;
+        const trackingId = orderData.id.replace("ORD", "TRK");
+        const deliveryStickerContainer = document.getElementById('delivery-sticker-container');
+         }
+
+
+          function printInvoiceContainer() {
+            const printContents = document.getElementById('invoice-container').innerHTML;
+            const originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+        }
+
+        function printDeliveryStickerContainer() {
+            const printContents = document.getElementById('delivery-sticker-container').innerHTML;
+            const originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+        }
+
+        // Remove the direct title setting and just keep init
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -14,8 +14,11 @@ const userSchemas = {
       state: Joi.string(),
       zipCode: Joi.string(),
       country: Joi.string()
-    })
+    }),
   }),
+
+  
+  
 
   login: Joi.object({
     email: Joi.string().required().email(),
@@ -45,6 +48,39 @@ const userSchemas = {
   })
 };
 
+const appointmentSchemas = {
+  create: Joi.object({
+    name: Joi.string().required().min(2).max(50),
+
+    email: Joi.string().required().email(),
+
+    phone: Joi.string()
+      .required()
+      .pattern(/^[6-9]\d{9}$/),
+
+    petCategory: Joi.string().required(),
+
+    service: Joi.string().required(),
+
+    dateOfAppointment: Joi.date().required(),
+
+    time: Joi.string().required(),
+
+    location: Joi.string().required(),
+
+    rescheduleReason: Joi.string().optional()
+  }),
+};
+const reviewSchemas = {
+  create: Joi.object({
+    appointmentId: Joi.string().required(),
+
+    review: Joi.string().required().min(5).max(500),
+
+    rating: Joi.number().required().min(1).max(5),
+  }),
+};
+
 const bookSchemas = {
   create: Joi.object({
     title: Joi.string().required(),
@@ -65,6 +101,27 @@ const bookSchemas = {
       Joi.string()
     )
   })
+};
+
+const objectId = /^[0-9a-fA-F]{24}$/;
+
+const cartSchemas = {
+  // ✅ Add to cart
+  add: Joi.object({
+    bookId: Joi.string().pattern(objectId).required(),
+    quantity: Joi.number().integer().min(1).max(10).default(1),
+  }),
+
+  // ✅ Update quantity
+  update: Joi.object({
+    bookId: Joi.string().pattern(objectId).required(),
+    quantity: Joi.number().integer().min(1).max(10).required(),
+  }),
+
+  // ✅ Remove item
+  remove: Joi.object({
+    bookId: Joi.string().pattern(objectId).required(),
+  }),
 };
 
 const orderSchemas = {
@@ -97,9 +154,50 @@ const blogSchemas = {
   })
 };
 
+ const checkoutAddressSchema = Joi.object({
+  fullName: Joi.string()
+    .min(2)
+    .max(50)
+    .required()
+    .messages({
+      "string.empty": "Full name is required",
+    }),
+
+  mobileNumber: Joi.string()
+    .pattern(/^[0-9]{10}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Mobile number must be 10 digits",
+    }),
+
+  addressLine1: Joi.string().required(),
+  addressLine2: Joi.string().allow(""),
+
+  landmark: Joi.string().allow(""),
+
+  pincode: Joi.string()
+    .pattern(/^[0-9]{6}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Pincode must be 6 digits",
+    }),
+
+  city: Joi.string().required(),
+  state: Joi.string().required(),
+
+  type: Joi.string()
+    .valid("Home", "Office")
+    .default("Home"),
+});
+
 module.exports = {
   userSchemas,
+  appointmentSchemas,
+  reviewSchemas,
   bookSchemas,
   orderSchemas,
-  blogSchemas
+  blogSchemas,
+  cartSchemas,
+  checkoutAddressSchema
+
 };

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { required } = require('joi');
 
 const addressSchema = new mongoose.Schema({      
   mobilenum: { type: String, required: true },       
@@ -12,6 +13,21 @@ const addressSchema = new mongoose.Schema({
   type: { type: String, default: "Home" },          
   isDefault: { type: Boolean, default: false },   
 });
+// const appointmentSchema=new mongoose.Schema({
+//   name: { type: String, required: true },
+//   email: { type: String, required: true, unique: true },
+//   phone: {type: String,required: true},
+//   petCategory:{ type: String, required: true },
+//   service: { type: String, required: true },
+//   date:{ type: Date, default: null, required:true},
+//   time:{type: time, required: true},
+//   location:{ type: String, required: true },
+//   status:{ 
+//     type: String, 
+//     enum: ['Male', 'Female', 'Other'], 
+//     default: null 
+//   }
+// })
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -31,6 +47,7 @@ const userSchema = new mongoose.Schema({
   isAdmin: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
   addresses: [addressSchema],
+
   favorites: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Book'

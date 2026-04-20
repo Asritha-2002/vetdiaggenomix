@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-9YgKe2Eq.js";import{t}from"./react-CM_0bdEm.js";import{r as n}from"./index-_g8bnRej.js";t();var r=e(),i=({children:e})=>{let t=localStorage.getItem(`token`),i=localStorage.getItem(`user`);return!t||!i?(0,r.jsx)(n,{to:`/sign-in`,replace:!0}):e};export{i as default};

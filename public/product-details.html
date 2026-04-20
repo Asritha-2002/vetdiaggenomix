@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Details</title>
+    <script src="./js/tailwindcss.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Add Swiper CSS -->
+    <link rel="stylesheet" href="/css/nav.css">
+
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
+    <style>
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+       <!-- Auth Modals -->
+       <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="toggleModal('login-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="text-2xl font-bold mb-6">Login</h2>
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Password</label>
+                        <input type="password" name="password" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        Login
+                    </button>
+                </form>
+                <p class="mt-4 text-center text-gray-600">
+                    Don't have an account? 
+                    <a href="#" onclick="switchModal('login-modal', 'signup-modal')" class="text-red-600 hover:text-red-700">Sign up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="signup-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="toggleModal('signup-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="text-2xl font-bold mb-6">Sign Up</h2>
+                <form id="signup-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Name</label>
+                        <input type="text" name="name" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Password</label>
+                        <input type="password" name="password" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        Sign Up
+                    </button>
+                </form>
+                <p class="mt-4 text-center text-gray-600">
+                    Already have an account? 
+                    <a href="#" onclick="switchModal('signup-modal', 'login-modal')" class="text-red-600 hover:text-red-700">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-sidebar" class="cart-sidebar fixed right-0 w-96 shadow-lg transform translate-x-full transition-transform duration-300 z-40 bg-gray-50">
+        <div class="h-full flex flex-col">
+            <div class="p-6 border-b border-red-100">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Your Cart</h2>
+                        <p class="text-sm text-gray-500 mt-1">Free shipping on orders over ₹499</p>
+                    </div>
+                    <button onclick="toggleCart()" class="p-2 hover:bg-red-50 rounded-full transition-colors">
+                        <i class="fas fa-times text-gray-400 hover:text-red-600 text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <!-- Cart items will be loaded here -->
+            </div>
+
+            <div class="p-6 border-t border-red-100 bg-white">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Subtotal</p>
+                        <p id="cart-total" class="text-2xl font-bold text-gray-800">₹0</p>
+                    </div>
+                    <span id="cart-count" class="px-4 py-2 bg-red-50 text-red-600 rounded-full text-sm font-medium">
+                        0 items
+                    </span>
+                </div>
+                <button onclick="checkout()" class="cart-checkout-btn w-full py-4 rounded-xl text-white font-medium">
+                    Proceed to Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed w-full z-30 glass-effect shadow-lg mb-10">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="/" class="flex items-center gap-3">
+                    <img src="https://www.vetdiaggenomix.com/assets/img/ICON%2001.png" alt="Logo" class="h-8 w-8 rounded-lg"/>
+                    <span class="font-medium text-red-600 text-lg">VetDiag Genomix</span>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="/" class="text-gray-700 hover:text-red-600 transition-colors">Home</a>
+                    <a href="/products" class="text-gray-700 hover:text-red-600 transition-colors">Products</a>
+                   
+                </nav>
+
+                <!-- User Actions -->
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-700 hover:text-red-600">
+                        <i class="fas fa-search text-xl"></i>
+                    </button>
+                    <button id="auth-button" onclick="toggleModal('login-modal')" class="text-gray-700 hover:text-red-600">
+                        <i class="fas fa-user text-xl"></i>
+                    </button>
+                    <button onclick="toggleCart()" class="text-gray-700 hover:text-red-600 relative">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                    </button>
+                    <button class="md:hidden text-gray-700 hover:text-red-600" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+            <nav class="px-4 py-2">
+                <a href="/" class="block py-2 text-gray-700 hover:text-red-600">Home</a>
+                <a href="/products" class="block py-2 text-gray-700 hover:text-red-600">Products</a>
+                
+            </nav>
+        </div>
+    </header>
+
+    <!-- Categories Navigation -->
+    <nav class="bg-gray-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center overflow-x-auto whitespace-nowrap py-3 -mx-4 px-4 scrollbar-hide">
+                <a href="/categories.html" class="text-gray-600 hover:text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors mr-2">
+                    <i class="fas fa-th-large mr-2"></i>
+                    All Categories
+                </a>
+                <div class="h-6 w-px bg-gray-200 mx-2"></div>
+                <div id="categoriesList" class="flex items-center space-x-4">
+                    <!-- Categories will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Breadcrumb -->
+        <nav class="mb-8 text-sm">
+            <ol class="flex items-center space-x-2">
+                <li><a href="/" class="text-gray-500 hover:text-red-600">Home</a></li>
+                <li><span class="text-gray-400">/</span></li>
+                <li><a href="/products.html" class="text-gray-500 hover:text-red-600">Products</a></li>
+                <li><span class="text-gray-400">/</span></li>
+                <li><span class="text-gray-900" id="productBreadcrumb"></span></li>
+            </ol>
+        </nav>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+            <!-- Media Gallery Section -->
+            <div class="space-y-4 md:sticky md:top-20 self-start">
+                <div class="bg-gray-50 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="swiper mainSwiper aspect-[4/3] relative group">
+                        <div class="swiper-wrapper" id="mainMediaWrapper">
+                            <!-- Dynamic content will be inserted here -->
+                        </div>
+                        <button type="button" class="swiper-nav-btn swiper-nav-prev absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button type="button" class="swiper-nav-btn swiper-nav-next absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thumbnails -->
+                <div class="bg-gray-50 p-3 rounded-lg shadow-md">
+                    <div class="swiper thumbSwiper h-20">
+                        <div class="swiper-wrapper" id="thumbnailWrapper">
+                            <!-- Dynamic thumbnails will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Details Section -->
+            <div class="space-y-4 md:space-y-6">
+                <div class="bg-gray-50 p-4 md:p-6 rounded-2xl shadow-lg ">
+                    <span id="categoryBadge" class="inline-block px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm mb-4"></span>
+                    <h1 id="productTitle" class="text-3xl font-bold text-gray-800 mb-4"></h1>
+                    
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="flex items-center gap-2">
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <span class="text-gray-600">(4.5)</span>
+                        </div>
+                        <span class="text-sm text-gray-500">•</span>
+                        <span class="text-sm text-gray-500" id="viewCount"></span>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-6">
+                        <span id="productPrice" class="text-3xl font-bold text-red-600"></span>
+                        <span id="originalPrice" class="text-lg text-gray-400 line-through"></span>
+                        <span id="discountBadge" class="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-sm"></span>
+                    </div>
+
+                    <p id="productDescription" class="text-gray-600 leading-relaxed mb-6"></p>
+
+                    <hr class="my-6 border-gray-200">
+
+                    <!-- Available Vouchers Section -->
+                    <div class="mb-6">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Available Offers</h3>
+                        <div id="vouchersContainer" class="space-y-2">
+                            <!-- Vouchers will be inserted here dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Add to Cart Section -->
+                    <div class="space-y-6">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex items-center border border-gray-200 rounded-lg shadow-sm">
+                                <button class="px-4 py-2 hover:bg-gray-50 transition" id="decreaseQty">
+                                    <i class="fas fa-minus text-gray-600"></i>
+                                </button>
+                                <input type="number" id="quantity" value="1" min="1" 
+                                    class="w-16 text-center border-x py-2 focus:outline-none">
+                                <button class="px-4 py-2 hover:bg-gray-50 transition" id="increaseQty">
+                                    <i class="fas fa-plus text-gray-600"></i>
+                                </button>
+                            </div>
+                            <button id="addToCartBtn" class="flex-1 bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2">
+                                <i class="fas fa-shopping-cart"></i>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Details Card -->
+                <div id="productDetails" class="bg-gray-50 p-6 rounded-lg shadow-xl"></div>
+
+                <!-- Statistics Card -->
+                <div id="productStats" class="bg-gray-50 p-6 rounded-lg shadow-xl"></div>
+            </div>
+        </div>
+
+        <!-- Related Products Section -->
+        <section class="mt-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Related Products</h2>
+            <div id="relatedProducts" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Related products will be inserted here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Templates for dynamic content -->
+    <template id="imageSlideTemplate">
+        <div class="swiper-slide">
+            <img class="w-full h-full object-contain" src="" alt="">
+        </div>
+    </template>
+
+    <template id="videoSlideTemplate">
+        <div class="swiper-slide">
+            <video class="w-full h-full object-contain" controls>
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </template>
+
+    <template id="voucherTemplate">
+        <div class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg bg-gray-100">
+            <div class="text-red-600">
+                <i class="fas fa-gift text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-gray-900">Code: <span class="voucher-code"></span></span>
+                    <span class="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded voucher-status"></span>
+                </div>
+                <p class="text-sm text-gray-600 voucher-description"></p>
+                <div class="mt-2 text-xs text-gray-500 voucher-details"></div>
+            </div>
+            <button class="text-red-600 hover:text-red-700 text-sm font-medium copy-voucher">
+                Copy Code
+            </button>
+        </div>
+    </template>
+
+    <script>
+        function isCartOpen() {
+            const cartSidebar = document.getElementById('cart-sidebar');
+            return !cartSidebar.classList.contains('translate-x-full');
+        }
+    </script>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/product-details.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/nav.js"></script>
+</body>
+</html>

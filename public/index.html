@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetDiag Genomix</title>
+    <script src="./js/tailwindcss.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="https://www.vetdiaggenomix.com/assets/img/ICON%2001.png" type="image/x-icon">
+    <style>
+        body { 
+            font-family: 'DM Sans', sans-serif;
+            background-color: #f5f5f5;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .floating-card {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ef4444' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        .hover-gradient:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+        }
+        /* Update carousel styles */
+        .carousel-container {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(239, 68, 68, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .carousel-slide {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .carousel-slide.active {
+            display: block;
+            opacity: 1;
+            position: relative;
+        }
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            color: #ef4444;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .carousel-btn:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .carousel-btn.prev { left: 1rem; }
+        .carousel-btn.next { right: 1rem; }
+        
+        @media (max-width: 768px) {
+            .carousel-container {
+                height: 30vh !important; /* Decreased from 60vh to 50vh */
+            }
+            .carousel-btn {
+                width: 35px;
+                height: 35px;
+            }
+            .carousel-btn.prev { left: 0.5rem; }
+            .carousel-btn.next { right: 0.5rem; }
+        }
+        /* Add Cart Styles */
+        .cart-sidebar {
+            top: 4rem; /* Add space below header */
+            height: calc(100vh - 4rem); /* Adjust height to account for header */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(239, 68, 68, 0.1);
+        }
+        
+        .cart-item {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .cart-item:hover {
+            transform: translateX(-4px);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        
+        .cart-checkout-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .cart-checkout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+        }
+        .marketing-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            color: #ef4444;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .marketing-btn:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .marketing-btn.prev { left: 1rem; }
+        .marketing-btn.next { right: 1rem; }
+    </style>
+
+    <!-- Add API Scripts -->
+    <script src="/js/alert.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+
+</head>
+<body class="bg-gray-50 pattern">
+    <!-- Auth Modals -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="toggleModal('login-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="text-2xl font-bold mb-6">Login</h2>
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Password</label>
+                        <input type="password" name="password" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        Login
+                    </button>
+                </form>
+                <div class="mt-4 text-center">
+                    <a href="#" onclick="switchModal('login-modal', 'forgot-password-modal')" class="text-red-600 hover:text-red-700">Forgot Password?</a>
+                </div>
+                <p class="mt-4 text-center text-gray-600">
+                    Don't have an account? 
+                    <a href="#" onclick="switchModal('login-modal', 'signup-modal')" class="text-red-600 hover:text-red-700">Sign up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="toggleModal('forgot-password-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="text-2xl font-bold mb-6">Reset Password</h2>
+                <form id="forgot-password-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        Send Reset Link
+                    </button>
+                </form>
+                <p class="mt-4 text-center text-gray-600">
+                    Remember your password? 
+                    <a href="#" onclick="switchModal('forgot-password-modal', 'login-modal')" class="text-red-600 hover:text-red-700">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div id="reset-password-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="toggleModal('reset-password-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="text-2xl font-bold mb-6">Set New Password</h2>
+                <form id="reset-password-form" class="space-y-4">
+                    <input type="hidden" name="token" id="reset-token">
+                    <div>
+                        <label class="block text-gray-700 mb-2">New Password</label>
+                        <input type="password" name="password" required minlength="6"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Confirm Password</label>
+                        <input type="password" name="confirmPassword" required minlength="6"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        Reset Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="signup-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="toggleModal('signup-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="text-2xl font-bold mb-6">Sign Up</h2>
+                <form id="signup-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Name</label>
+                        <input type="text" name="name" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Password</label>
+                        <input type="password" name="password" required
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                        Sign Up
+                    </button>
+                </form>
+                <p class="mt-4 text-center text-gray-600">
+                    Already have an account? 
+                    <a href="#" onclick="switchModal('signup-modal', 'login-modal')" class="text-red-600 hover:text-red-700">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-sidebar" class="cart-sidebar fixed right-0 w-96 shadow-2xl transform translate-x-full transition-transform duration-300 z-40">
+        <div class="h-full flex flex-col">
+            <div class="p-6 border-b border-red-100">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Your Cart</h2>
+                        <p class="text-sm text-gray-500 mt-1">Free shipping on orders over ₹499</p>
+                    </div>
+                    <button onclick="toggleCart()" class="p-2 hover:bg-red-50 rounded-full transition-colors">
+                        <i class="fas fa-times text-gray-400 hover:text-red-600 text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <!-- Cart items will be loaded here -->
+            </div>
+
+            <div class="p-6 border-t border-red-100 bg-white">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Subtotal</p>
+                        <p id="cart-total" class="text-2xl font-bold text-gray-800">₹0</p>
+                    </div>
+                    <span id="cart-count" class="px-4 py-2 bg-red-50 text-red-600 rounded-full text-sm font-medium">
+                        0 items
+                    </span>
+                </div>
+                <button onclick="checkout()" class="cart-checkout-btn w-full py-4 rounded-xl text-white font-medium">
+                    Proceed to Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed w-full z-50 glass-effect shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="/" class="flex items-center gap-3">
+                    <img src="https://www.vetdiaggenomix.com/assets/img/ICON%2001.png" alt="Logo" class="h-8 w-8 rounded-lg"/>
+                    <span class="font-medium text-red-600 text-lg">VetDiag Genomix</span>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="/" class="text-gray-700 hover:text-red-600 transition-colors">Home</a>
+                    <a href="/products" class="text-gray-700 hover:text-red-600 transition-colors">Products</a>
+                   
+                </nav>
+
+                <!-- User Actions -->
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-700 hover:text-red-600">
+                        <i class="fas fa-search text-xl"></i>
+                    </button>
+                    <button id="auth-button" onclick="toggleModal('login-modal')" class="text-gray-700 hover:text-red-600">
+                        <i class="fas fa-user text-xl"></i>
+                    </button>
+                    <button onclick="toggleCart()" class="text-gray-700 hover:text-red-600 relative">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                    </button>
+                    <button class="md:hidden text-gray-700 hover:text-red-600" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+            <nav class="px-4 py-2">
+                <a href="#" class="block py-2 text-gray-700 hover:text-red-600">Home</a>
+                <a href="/products" class="block py-2 text-gray-700 hover:text-red-600">Products</a>
+                
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero-section" class="pt-16">
+        <div class="carousel-container relative h-[70vh] bg-gray-100 rounded-b-xl">
+            <div id="banner-carousel" class="h-full">
+                <!-- Banners will be loaded here -->
+            </div>
+            <!-- <button class="carousel-btn prev">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <button class="carousel-btn next">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button> -->
+        </div>
+    </section>
+
+    <!-- Featured Categories -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">Our Collections</h2>
+            <div id="categories-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Categories will be loaded here -->
+                <div class="animate-pulse bg-gray-200 rounded-2xl h-80"></div>
+                <div class="animate-pulse bg-gray-200 rounded-2xl h-80"></div>
+                <div class="animate-pulse bg-gray-200 rounded-2xl h-80"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marketing Advertisements -->
+    <section hidden class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <!-- <h2 class="text-3xl font-bold text-center mb-12">Special Offers</h2> -->
+            <div id="marketing-container" class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+                <!-- Loading placeholders -->
+                <div class="animate-pulse bg-white rounded-2xl h-[300px]"></div>
+                <div class="animate-pulse bg-white rounded-2xl h-[300px]"></div>
+                <button class="marketing-btn prev" onclick="scrollMarketing(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="marketing-btn next" onclick="scrollMarketing(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Sections -->
+    <section class="py-16 bg-gradient-to-br from-gray-50 to-red-50 border-t border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4">
+            <!-- Most Viewed Books -->
+            <div class="mb-16">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-bold">Most Popular</h2>
+                    <div class="relative group">
+                        <a href="/products" class="text-red-600 hover:text-red-700 flex items-center gap-2 transition-all duration-300">
+                            View All 
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div id="most-viewed-container" class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <!-- Loading placeholders -->
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                </div>
+            </div>
+
+            <!-- Bestsellers -->
+            <div class="hidden">
+                <div  class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-bold">Bestsellers</h2>
+                    <div class="relative group">
+                        <a href="/products" class="text-red-600 hover:text-red-700 flex items-center gap-2 transition-all duration-300">
+                            View All 
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div id="bestsellers-container" class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <!-- Loading placeholders -->
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                    <div class="animate-pulse bg-white rounded-xl shadow-lg h-96"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+   
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4">
+          
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+                <p>© 2025 VetDiag Genomix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() {
+            const mobileMenu = document.querySelector('#mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        }
+    </script>
+        <script>
+        let currentSlide = 0;
+        let bannerSlides = [];
+        let slideInterval;
+
+        function showSlide(index) {
+            console.log(`Showing slide ${index}`);
+            const slides = document.querySelectorAll('.carousel-slide');
+            if (slides.length === 0) return;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            
+            currentSlide = (index + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        function startSlideshow() {
+            if (slideInterval) clearInterval(slideInterval);
+            slideInterval = setInterval(() => showSlide(currentSlide + 1), 5000);
+        }
+
+        async function initPage() {
+            try {
+                // Load marketing banners
+                const banners = await api.getMarketingAssets('banner');
+                bannerSlides = banners.filter(banner => banner.isActive);
+                
+                if (bannerSlides.length > 0) {
+                    const carouselHtml = bannerSlides.map((banner, index) => `
+                        <div class="carousel-slide ${index === 0 ? 'active' : ''} h-full">
+                            <img src="${banner.image.path}" alt="${banner.metadata?.altText || 'Banner'}" 
+                                 class="w-full h-full object-cover"/>
+                            <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                <div class="text-center text-white px-4">
+                                    <h1 class="text-4xl md:text-7xl font-bold mb-4">${banner?.title || 'Welcome'}</h1>
+                                    <p class="text-lg md:text-2xl mb-8">${banner?.description || ''}</p>
+                                    <a href="${banner?.linkTo || '#'}" class="bg-red-600 text-white px-8 py-3 rounded-full hover:bg-red-700 transition-colors">
+                                        Shop Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('banner-carousel').innerHTML = carouselHtml;
+                    
+                    // document.querySelector('.carousel-btn.prev').addEventListener('click', () => {
+                    //     console.log('Previous button clicked');
+                    //     showSlide(currentSlide - 1);
+                    //     startSlideshow();
+                    // });
+                    // document.querySelector('.carousel-btn.next').addEventListener('click', () => {
+                    //     console.log('Next button clicked');
+                    //     showSlide(currentSlide + 1);
+                    //     startSlideshow();
+                    // });
+                    
+                    startSlideshow();
+                }
+
+                // Load categories
+                const categories = await api.getCategories();
+                const categoriesHTML = await Promise.all(categories.map(async category => {
+                    try {
+                        const products = await api.getProducts({ category: category.name, limit: 1 });
+                        const catimg = await api.getCategoryImage(category);
+                        return `
+                            <div class="group relative overflow-hidden rounded-2xl">
+                                <img src="${catimg.url}" alt="${category[0]}" 
+                                     class="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110"/>
+                                <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                    <div class="text-center text-white">
+                                        <h3 class="text-2xl font-bold mb-2">${category}</h3>
+                                        <a href="/products#${category}" 
+                                           class="inline-block border-2 border-white px-6 py-2 rounded-full hover:bg-white hover:text-black transition-colors">
+                                            View All
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } catch (error) {
+                        console.error(`Error fetching products for category ${category.name}:`, error);
+                        return `
+                            <div class="group relative overflow-hidden rounded-2xl">
+                                <img src="default-category.jpg" alt="${category.name}" 
+                                     class="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110"/>
+                                <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                    <div class="text-center text-white">
+                                        <h3 class="text-2xl font-bold mb-2">${category.name}</h3>
+                                        <a href="/products#${category.slug}" 
+                                           class="inline-block border-2 border-white px-6 py-2 rounded-full hover:bg-white hover:text-black transition-colors">
+                                            View All
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }));
+                document.getElementById('categories-container').innerHTML = categoriesHTML.join('');
+
+                // Load marketing advertisements
+                const advertisements = await api.getMarketingAssets('advertisement');
+                allAds = advertisements.filter(ad => ad.isActive);
+                
+                if (allAds.length > 0) {
+                    scrollMarketing(0); // Initialize with first two ads
+                }
+
+                // Load most viewed books
+                const mostViewed = await api.getMostViewed(4);
+                const mostViewedHTML = mostViewed.map(book => `
+                    <div class="glass-effect rounded-xl shadow-xl overflow-hidden group hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                        <a href="/product-details/${book._id}" class="relative overflow-hidden aspect-[4/3] block">
+                            <img src="${book.images[0]?.url || '/assets/default-product.png'}" 
+                                 alt="${book.title}"
+                                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>
+                            ${book.stock < 1 ? '<span class="absolute top-3 right-3 glass-effect px-3 py-1 rounded-full text-sm font-medium text-red-600">Out of Stock</span>' : ''}
+                        </a>
+                        <div class="p-6">
+                            <p class="text-red-600 text-sm mb-2">${book.category}</p>
+                            <h3 class="font-bold text-lg mb-3 line-clamp-2">${book.title}</h3>
+                            <div class="flex justify-between items-center">
+                                <span class="text-2xl font-bold">₹${book.price}</span>
+                                <button onclick="addToCart('${book._id}')" 
+                                        class="bg-red-600 text-white px-6 py-2 rounded-full hover:bg-red-700 transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-2"
+                                        ${book.stock < 1 ? 'disabled' : ''}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                    </svg>
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                document.getElementById('most-viewed-container').innerHTML = mostViewedHTML.join('');
+
+                // Load bestsellers - Update API call
+                const bestsellers = await api.getBestsellers(4); // Explicitly requesting 4 items
+                const bestsellersHTML = bestsellers.map(book => `
+                    <div class="glass-effect rounded-xl shadow-xl overflow-hidden group hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                        <a href="/product-details/${book._id}" class="relative overflow-hidden aspect-[4/3] block">
+                            <img src="${book.images[0]?.url || '/assets/default-product.png'}" 
+                                 alt="${book.title}"
+                                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>
+                            ${book.stock < 1 ? '<span class="absolute top-3 right-3 glass-effect px-3 py-1 rounded-full text-sm font-medium text-red-600">Out of Stock</span>' : ''}
+                        </a>
+                        <div class="p-6">
+                            <p class="text-red-600 text-sm mb-2">${book.category}</p>
+                            <h3 class="font-bold text-lg mb-3 line-clamp-2">${book.title}</h3>
+                            <div class="flex justify-between items-center">
+                                <span class="text-2xl font-bold">₹${book.price}</span>
+                                <button onclick="addToCart('${book._id}')" 
+                                        class="bg-red-600 text-white px-6 py-2 rounded-full hover:bg-red-700 transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-2"
+                                        ${book.stock < 1 ? 'disabled' : ''}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                    </svg>
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                document.getElementById('bestsellers-container').innerHTML = bestsellersHTML.join('');
+
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                document.getElementById('hero-section').style.display = 'none';
+            }
+        }
+
+        function addToCart(productId) {
+            // Implement add to cart functionality
+            const quantity = 1; // Default quantity
+            api.addToCart(productId,quantity).then(() => {
+                updateCart();
+            }).catch(error => {
+                console.error('Error adding to cart:', error);
+                alert('Failed to add product to cart. Please try again.');
+            });
+        }
+
+        function quickView(bookId) {
+            // Implement quick view modal
+            console.log('Quick view:', bookId);
+        }
+
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+    <script>
+        // Auth functions
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+        }
+
+        function switchModal(closeId, openId) {
+            toggleModal(closeId);
+            toggleModal(openId);
+        }
+
+        // Cart functions
+        function toggleCart() {
+            const cart = document.getElementById('cart-sidebar');
+            cart.classList.toggle('translate-x-full');
+        }
+
+        function isCartOpen() {
+            const cartSidebar = document.getElementById('cart-sidebar');
+            return !cartSidebar.classList.contains('translate-x-full');
+        }
+
+        async function updateCart() {
+            try {
+                const cartData = await api.getCart();
+                const cartItemsContainer = document.getElementById('cart-items');
+                const cartCount = document.getElementById('cart-count');
+                const headerCartCount = document.querySelector('header span#cart-count');
+                const cartTotal = document.getElementById('cart-total');
+
+                if (!cartData || !cartData.items) {
+                    cartCount.textContent = '0 items';
+                    headerCartCount.textContent = '0';
+                    cartTotal.textContent = '₹0.00';
+                    cartItemsContainer.innerHTML = '<p class="text-gray-500 text-center">Your cart is empty</p>';
+                    return;
+                }
+
+                const itemCount = cartData.items.length;
+                cartCount.textContent = `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
+                headerCartCount.textContent = itemCount.toString();
+                cartTotal.textContent = `₹${cartData.items.reduce((total, item) => 
+                    total + (item.book.price * item.quantity), 0).toFixed(2)}`;
+
+                cartItemsContainer.innerHTML = cartData.items.map(item => `
+                    <div class="flex gap-4 mb-4">
+                        <img src="${item.book.images[0]? item.book.images[0].url : '/assets/default-product.png'}" 
+                             alt="${item.book.title}" class="w-24 h-32 object-cover rounded-lg"/>
+                        <div class="flex-1">
+                            <h3 class="font-medium">${item.book.title}</h3>
+                            <p class="text-gray-600">₹${item.book.price}</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <button onclick="updateQuantity('${item._id}', ${item.quantity - 1})" class="text-gray-500">-</button>
+                                <span>${item.quantity}</span>
+                                <button onclick="updateQuantity('${item._id}', ${item.quantity + 1})" class="text-gray-500">+</button>
+                            </div>
+                        </div>
+                        <button onclick="removeFromCart('${item._id}')" class="text-red-600">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error updating cart:', error);
+            }
+        }
+
+
+        async function updateQuantity(id, quantity) {
+            try {
+                if (quantity < 1) {
+                    await removeFromCart(id);
+                } else {
+                    await api.updateCartItem(id, { quantity });
+                    await updateCart();
+                }
+            } catch (error) {
+                console.error('Error updating quantity:', error);
+                alert('Failed to update quantity. Please try again.');
+            }
+        }
+
+        async function checkout() {
+            window.location.href = '/checkout';
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initPage();
+            
+            if (auth.isAuthenticated()) {
+                updateCart();
+            }
+
+            // Setup form handlers
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    await auth.login(Object.fromEntries(new FormData(e.target)));
+                    toggleModal('login-modal');
+                    updateCart();
+                } catch (error) {
+                    console.error('Login failed:', error);
+                }
+            });
+
+            document.getElementById('signup-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    await auth.signup(Object.fromEntries(new FormData(e.target)));
+                    toggleModal('signup-modal');
+                    updateCart();
+                } catch (error) {
+                    console.error('Signup failed:', error);
+                }
+            });
+        });
+        let currentAdIndex = 0;
+        let allAds = [];
+
+        function scrollMarketing(direction) {
+            if (!allAds.length) return;
+            
+            currentAdIndex = (currentAdIndex + direction + allAds.length) % allAds.length;
+            const start = currentAdIndex - (currentAdIndex % 2);
+            const visibleAds = allAds.slice(start, start + 2);
+            
+            const marketingHTML = visibleAds.map(ad => `
+                <div class="relative overflow-hidden rounded-2xl group">
+                    <img src="${ad.image.path}" alt="${ad.metadata?.altText || 'Advertisement'}" 
+                         class="w-full h-[300px] object-cover transition-transform duration-700 group-hover:scale-105"/>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                        <div class="p-8 text-white w-full">
+                            <h3 class="text-2xl font-bold mb-2">${ad.title || 'Special Offer'}</h3>
+                            <p class="mb-4 text-gray-200">${ad.description || ''}</p>
+                            <a href="${ad.metadata?.link || '/products'}" 
+                               class="inline-block bg-white text-black px-6 py-2 rounded-full hover:bg-red-600 hover:text-white transition-colors">
+                                View Books
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('marketing-container').innerHTML = marketingHTML + `
+                <button class="marketing-btn prev" onclick="scrollMarketing(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="marketing-btn next" onclick="scrollMarketing(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+        }
+    </script>
+</body>
+</html>

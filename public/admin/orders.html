@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Orders</title>
+    <script src="./js/tailwindcss.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md">
+            <div class="p-4">
+                <h1 class="text-xl font-bold">BookStore Admin</h1>
+            </div>
+            <nav class="mt-4">
+                <a href="/admin/dashboard.html" class="block px-4 py-2 hover:bg-gray-100">Dashboard</a>
+                <a href="/admin/products.html" class="block px-4 py-2 hover:bg-gray-100">Products</a>
+                <a href="/admin/orders.html" class="block px-4 py-2 bg-gray-100 font-medium">Orders</a>
+                <a href="/admin/users.html" class="block px-4 py-2 hover:bg-gray-100">Users</a>
+                <a href="/admin/vouchers.html" class="block px-4 py-2 hover:bg-gray-100">Vouchers</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8" id="main-content">
+            <!-- Orders content will be loaded here -->
+        </main>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden" style="z-index: 9999;">
+        <div class="bg-white rounded-lg max-w-3xl mx-auto mt-20 p-6 max-h-[80vh] overflow-y-auto relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Order Details</h3>
+              
+            </div>
+            <div id="order-details" class="space-y-4">
+                <!-- Order details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/orders.js"></script>
+    <script>
+        function closeOrderModal() {
+            document.getElementById('order-modal').classList.add('hidden');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            adminOrders.render();
+        });
+    </script>
+</body>
+</html>

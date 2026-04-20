@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetDiag Admin - Modern Dashboard</title>
+    <script src="./js/tailwindcss.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/blog-admin.css">
+    <style>
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .sidebar-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glow-effect {
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .nav-item {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .nav-item:hover::before {
+            left: 100%;
+        }
+        
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .animated-gradient {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                opacity: 0.7;
+                box-shadow: 0 0 30px rgba(102, 126, 234, 0.7);
+            }
+        }
+        
+        .scroll-smooth {
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+        }
+
+        /* Mobile sidebar fixes */
+        @media (max-width: 1023px) {
+            #sidebar {
+                z-index: 50;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                overflow-y: auto;
+            }
+            
+            #sidebar.-translate-x-full {
+                transform: translateX(-100%);
+            }
+            
+            #sidebar:not(.-translate-x-full) {
+                transform: translateX(0);
+            }
+        }
+
+        /* Overlay for mobile sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Floating Background Elements -->
+    <div class="floating-elements">
+        <div class="floating-circle w-96 h-96 top-10 left-10" style="animation-delay: 0s;"></div>
+        <div class="floating-circle w-64 h-64 top-1/2 right-20" style="animation-delay: 2s;"></div>
+        <div class="floating-circle w-48 h-48 bottom-20 left-1/3" style="animation-delay: 4s;"></div>
+    </div>
+
+    <!-- Authentication Check -->
+    <script>
+        if (!localStorage.getItem('adminToken')) {
+            window.location.href = '/admin/login.html';
+        }
+
+
+
+    </script>
+    
+    <div class="min-h-screen flex relative">
+        <!-- Sidebar Overlay for Mobile -->
+        <div id="sidebarOverlay" class="sidebar-overlay lg:hidden"></div>
+        
+        <!-- Modern Sidebar -->
+        <aside class="fixed lg:static inset-y-0 left-0 z-50 w-72 sidebar-gradient text-white transform transition-all duration-300 ease-in-out lg:transform-none -translate-x-full lg:translate-x-0" id="sidebar">
+            <!-- Sidebar Header -->
+            <div class="flex items-center justify-between p-6 border-b border-white/10">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center glow-effect">
+                        <i class="fas fa-chart-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">Ecom Admin</h1>
+                        <p class="text-xs text-gray-300">Management Portal</p>
+                    </div>
+                </div>
+                <button class="lg:hidden text-white/80 hover:text-white focus:outline-none" onclick="toggleSidebar()">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="mt-8 px-4 space-y-2" id="sidebarNav">
+                <a href="#/dashboard" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-home text-sm"></i>
+                    </div>
+                    <span class="font-medium">Dashboard</span>
+                    <div class="ml-auto w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                </a>
+
+                <a href="#/users" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-users text-sm"></i>
+                    </div>
+                    <span class="font-medium">Users</span>
+                </a>
+                
+                
+                <a href="#/books" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-book text-sm"></i>
+                    </div>
+                    <span class="font-medium">Products</span>
+                </a>
+                
+                <a href="#/orders" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-shopping-cart text-sm"></i>
+                    </div>
+                    <span class="font-medium">Orders</span>
+                </a>
+                
+                <a href="#/vouchers" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-tags text-sm"></i>
+                    </div>
+                    <span class="font-medium">Vouchers</span>
+                </a>
+                
+                <a href="#/blogs" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-blog text-sm"></i>
+                    </div>
+                    <span class="font-medium">Blogs</span>
+                </a>
+                
+                <a href="#/marketing" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-bullhorn text-sm"></i>
+                    </div>
+                    <span class="font-medium">Marketing</span>
+                </a>
+                
+                <a href="#/shop-details" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-store text-sm"></i>
+                    </div>
+                    <span class="font-medium">Shop Details</span>
+                </a>
+                
+                <a href="#/other-stores" class="nav-item nav-link group flex items-center px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200">
+                    <div class="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-shopping-bag text-sm"></i>
+                    </div>
+                    <span class="font-medium">Other Stores</span>
+                </a>
+            </nav>
+            
+            <!-- Sidebar Footer -->
+            <!-- <div class="absolute bottom-6 left-4 right-4">
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-white text-sm">Admin User</p>
+                            <p class="text-xs text-white/60">Online</p>
+                        </div>
+                        <button class="text-white/60 hover:text-white transition-colors">
+                            <i class="fas fa-sign-out-alt text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div> -->
+        </aside>        
+        <!-- Enhanced Order Details Modal -->
+        <div id="order-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50" style="z-index: 9999;">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="glass-morphism w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden border border-white/20">
+                    <!-- Modal Header -->
+                    <div class="px-8 py-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-b border-white/20 backdrop-blur-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-receipt text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-gray-800">Order Details</h3>
+                                    <p class="text-gray-600">Complete order information</p>
+                                </div>
+                            </div>
+                            <button onclick="closeOrderModal()" class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors">
+                                <i class="fas fa-times text-gray-600"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Modal Content -->
+                    <div class="max-h-[calc(100vh-16rem)] overflow-y-auto scroll-smooth">
+                        <div id="order-details" class="p-8 space-y-8">
+                            <!-- Order details will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-white/20 backdrop-blur-sm">
+                        <div class="flex justify-end space-x-4">
+                            <button onclick="closeOrderModal()" 
+                                    class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors">
+                                Close
+                            </button>
+                            <button class="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all transform hover:scale-105">
+                                Print Invoice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-h-screen">
+            <!-- Top Navigation Bar -->
+            <header class="glass-morphism shadow-lg border-b border-white/20 sticky top-0 z-40">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <!-- Mobile Menu Button & Search -->
+                    <div class="flex items-center space-x-4">
+                        <button class="lg:hidden w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-xl flex items-center justify-center hover:scale-105 transition-transform" onclick="toggleSidebar()">
+                            <i class="fas fa-bars text-sm"></i>
+                        </button>
+                        
+                        <!-- Search Bar -->
+                        <div class="hidden md:flex items-center bg-white/50 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/30">
+                            <i class="fas fa-search text-gray-400 mr-3"></i>
+                            <input type="text" disabled placeholder="Search..." class="bg-transparent outline-none text-gray-700 placeholder-gray-400 w-64">
+                        </div>
+                    </div>
+                    
+                    <!-- Right Side Actions -->
+                    <div class="flex items-center space-x-4">
+                        <!-- Notifications -->
+                        <!-- <button class="relative w-10 h-10 bg-white/50 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/70 transition-colors">
+                            <i class="fas fa-bell text-gray-600"></i>
+                            <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">3</span>
+                        </button> -->
+                        
+                        <!-- Settings -->
+                        <button class="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/70 transition-colors" onclick="window.location.href='#/shop-details'">
+                            <i class="fas fa-cog text-gray-600"></i>
+                        </button>
+                        
+                        <!-- User Profile -->
+                        <div class="flex items-center space-x-3 bg-white/50 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/30">
+                            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-white text-xs"></i>
+                            </div>
+                            <div class="hidden sm:block">
+                                <p class="font-semibold text-gray-700 text-sm">Admin</p>
+                                <p class="text-xs text-gray-500">Administrator</p>
+                            </div>
+                        </div>
+
+
+                        <!-- Logout Button -->
+                        <button class="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/70 transition-colors border border-gray-300" onclick="localStorage.removeItem('adminToken'); window.location.href='/admin/login.html';">
+                            <i class="fas fa-sign-out-alt text-gray-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto p-6 lg:p-8 scroll-smooth">
+                <div id="main-content" class="space-y-8">
+                    <!-- Content will be dynamically loaded here -->
+                </div>
+            </main>
+        </div>
+    </div>    <!-- Enhanced JavaScript for Modern Interactions -->
+    <script>
+        // Enhanced sidebar toggle with smooth animations
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const isOpen = !sidebar.classList.contains('-translate-x-full');
+            
+            if (isOpen) {
+                // Close sidebar
+                sidebar.classList.add('-translate-x-full');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            } else {
+                // Open sidebar
+                sidebar.classList.remove('-translate-x-full');
+                if (overlay) overlay.classList.add('active');
+                sidebar.style.animation = 'slideInLeft 0.3s ease-out';
+                if (window.innerWidth < 1024) {
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+        }
+
+        // Enhanced navigation handling
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebarNav = document.getElementById('sidebarNav');
+            if (sidebarNav) {
+                sidebarNav.addEventListener('click', (e) => {
+                    // Remove active state from all nav links
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('bg-white/20', 'scale-105');
+                    });
+                    
+                    // Add active state to clicked link
+                    if (e.target.closest('.nav-link')) {
+                        e.target.closest('.nav-link').classList.add('bg-white/20', 'scale-105');
+                    }
+                    
+                    // Auto-close sidebar on mobile
+                    if (window.innerWidth < 1024) {
+                        setTimeout(() => {
+                            const sidebar = document.getElementById('sidebar');
+                            sidebar.classList.add('-translate-x-full');
+                        }, 150);
+                    }
+                });
+            }
+        });
+
+        // Close sidebar when clicking outside (mobile)
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const mobileMenuButtons = document.querySelectorAll('[onclick="toggleSidebar()"]');
+            const hamburgerButton = document.querySelector('.lg\\:hidden [onclick="toggleSidebar()"]');
+            
+            // Handle overlay click
+            if (overlay && overlay.contains(e.target) && overlay === e.target) {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+                return;
+            }
+            
+            // Check if click is outside sidebar and not on menu buttons
+            let clickedOnMenuButton = false;
+            mobileMenuButtons.forEach(btn => {
+                if (btn && btn.contains(e.target)) {
+                    clickedOnMenuButton = true;
+                }
+            });
+            
+            if (hamburgerButton && hamburgerButton.contains(e.target)) {
+                clickedOnMenuButton = true;
+            }
+            
+            if (window.innerWidth < 1024 && 
+                sidebar &&
+                !sidebar.contains(e.target) && 
+                !clickedOnMenuButton &&
+                !sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.add('-translate-x-full');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (window.innerWidth >= 1024) {
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Enhanced modal close function
+        function closeOrderModal() {
+            const modal = document.getElementById('order-modal');
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.style.animation = '';
+                }, 300);
+            }
+        }
+
+        // Add smooth loading animations
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate elements on load
+            const elements = document.querySelectorAll('.nav-link, .stats-card');
+            elements.forEach((el, index) => {
+                if (el) {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        el.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                    }, index * 100);
+                }
+            });
+        });
+
+        // Handle window resize to properly show/hide sidebar
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth >= 1024) {
+                // Desktop - ensure sidebar is visible
+                sidebar.classList.remove('-translate-x-full');
+            } else {
+                // Mobile - ensure sidebar is hidden by default
+                sidebar.classList.add('-translate-x-full');
+            }
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInLeft {
+                from { transform: translateX(-100%); opacity: 0.8; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+
+            /* Ensure proper mobile sidebar behavior */
+            @media (max-width: 1023px) {
+                #sidebar {
+                    transform: translateX(-100%);
+                }
+                #sidebar:not(.-translate-x-full) {
+                    transform: translateX(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+    
+    <!-- Load all JavaScript modules -->
+    <script src="/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/dashboard.js"></script>
+    <script src="/admin/js/books.js"></script>
+    <script src="/admin/js/orders.js"></script>
+    <script src="/admin/js/marketing.js"></script>
+    <script src="/admin/js/users.js"></script>
+    <script src="/admin/js/vouchers.js"></script>
+    <script src="/admin/js/blogs.js"></script>
+    <script src="/admin/js/charges.js"></script>
+    <script src="/admin/js/shop-details.js"></script>
+    <script src="/admin/js/otherStores.js"></script>
+    <script src="/admin/js/index.js"></script>
+</body>
+</html>
