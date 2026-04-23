@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const path=require('path')
 
 const { auth, adminAuth } = require('../middleware/auth');
 const Order = require('../models/Order');
@@ -38,21 +39,27 @@ var pgInstance = new Razorpay({
 
 router.post("/:id/invoice", auth, async (req, res) => {
   try {
-    const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    }).populate("items.book user");
+    let order ;
+    if (req.user.isAdmin) {
+      // ✅ Admin can access ANY order
+      order = await Order.findById(req.params.id)
+        .populate("items.book user");
+    } else {
+      // ✅ User → only their own order
+      order = await Order.findOne({
+        _id: req.params.id,
+        user: req.user.id,
+      }).populate("items.book user");
+    }
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // ✅ only completed payments
     if (order.payment?.status !== "completed") {
       return res.status(400).json({ message: "Payment not completed yet" });
     }
 
-    // ✅ prevent duplicate invoice generation
     if (order.orderDetails?.invoice?.url) {
       return res.json({
         message: "Invoice already exists",
@@ -60,7 +67,6 @@ router.post("/:id/invoice", auth, async (req, res) => {
       });
     }
 
-    // 🔥 Generate invoice number
     const invoiceNumber = `INV-${Date.now()}-${order._id.toString().slice(-4)}`;
 
     order.orderDetails.invoice = {
@@ -71,10 +77,8 @@ router.post("/:id/invoice", auth, async (req, res) => {
 
     await order.save();
 
-    // 🔥 Generate PDF + upload to Cloudinary
-    const invoiceUrl = await generateInvoicePDF(order);
+    const invoiceUrl = await generateInvoice(order);
 
-    // 💾 Save final URL in DB
     order.orderDetails.invoice.url = invoiceUrl;
     await order.save();
 
@@ -88,6 +92,8 @@ router.post("/:id/invoice", auth, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
 
 // Middleware to validate Razorpay webhook signature
 router.post('/paymentStatus', async (req, res) => {
@@ -965,31 +971,112 @@ router.post('/verify-payment', auth, async (req, res) => {
   }
 });
 
+
+
 // Generate invoice
-router.post('/:id/invoice', auth, async (req, res) => {
+router.post("/:id/invoice", auth, async (req, res) => {
   try {
-    const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    }).populate('items.book user');
+    let order;
+    console.log("hiii");
+    
+    
+    if (req.user.isAdmin === true) {
+  // ✅ Admin can access any order
+  order = await Order.findById(req.params.id);
+} else {
+  // ✅ User can access only their order
+  order = await Order.findOne({
+    _id: req.params.id,
+    user: req.user.id,
+  });
+}
 
     if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ message: "Order not found" });
     }
 
-    // Generate unique invoice number
+    if (order.payment?.status !== "completed") {
+      return res.status(400).json({ message: "Payment not completed" });
+    }
+
+    if (order.orderDetails?.invoice?.url) {
+      return res.json({
+        message: "Already generated",
+        invoice: order.orderDetails.invoice,
+      });
+    }
+
     const invoiceNumber = `INV-${Date.now()}-${order._id.toString().slice(-4)}`;
-    
+
     order.orderDetails.invoice = {
       number: invoiceNumber,
       generatedAt: new Date(),
-      url: `/invoices/${invoiceNumber}.pdf` // URL where invoice will be stored
+      url: null,
     };
 
     await order.save();
-    res.json(order.orderDetails.invoice);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+
+    const result = await generateInvoice(order);
+
+    // store cloudinary url (optional)
+    order.orderDetails.invoice.url = result.cloudUrl;
+    await order.save();
+
+    return res.json({
+      message: "Invoice generated",
+      invoice: order.orderDetails.invoice,
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+//generate invoice for admin
+router.post("/:id/invoices", auth,adminAuth, async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (order.payment?.status !== "completed") {
+      return res.status(400).json({ message: "Payment not completed" });
+    }
+
+    if (order.orderDetails?.invoice?.url) {
+      return res.json({
+        message: "Already generated",
+        invoice: order.orderDetails.invoice,
+      });
+    }
+
+    const invoiceNumber = `INV-${Date.now()}-${order._id.toString().slice(-4)}`;
+
+    order.orderDetails.invoice = {
+      number: invoiceNumber,
+      generatedAt: new Date(),
+      url: null,
+    };
+
+    await order.save();
+
+    const result = await generateInvoice(order);
+
+    // store cloudinary url (optional)
+    order.orderDetails.invoice.url = result.cloudUrl;
+    await order.save();
+
+    return res.json({
+      message: "Invoice generated",
+      invoice: order.orderDetails.invoice,
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
