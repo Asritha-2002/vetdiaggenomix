@@ -6,6 +6,7 @@ const cloudinary = require("./cloudinary");
 const generateInvoice = async (order) => {
   try {
     const invoiceNumber = order.orderDetails.invoice.number;
+
     const dirPath = path.join(__dirname, "../invoices");
 
     if (!fs.existsSync(dirPath)) {
@@ -153,47 +154,47 @@ const generateInvoice = async (order) => {
     </html>
     `;
 
-    // 🚀 FIXED PUPPETEER LAUNCH (IMPORTANT FOR RENDER)
+    // ✅ RENDER SAFE PUPPETEER LAUNCH
     const browser = await puppeteer.launch({
+      executablePath: process.env.CHROME_PATH, // 👈 IMPORTANT
       headless: "new",
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage"
+        "--disable-dev-shm-usage",
+        "--single-process",
+        "--no-zygote",
       ],
-      executablePath: process.env.CHROME_PATH
     });
 
     const page = await browser.newPage();
 
-    // ✅ TIMEOUT SETTINGS (SAFE)
+    // ✅ SAFE TIMEOUTS
     await page.setDefaultTimeout(120000);
     await page.setDefaultNavigationTimeout(120000);
 
     await page.setContent(html, {
       waitUntil: "networkidle0",
-      timeout: 120000
     });
 
     await page.pdf({
       path: filePath,
       format: "A4",
-      printBackground: true
+      printBackground: true,
     });
 
     await browser.close();
 
-    // UPLOAD TO CLOUDINARY
+    // upload to cloudinary
     const uploadResult = await cloudinary.uploader.upload(filePath, {
       resource_type: "raw",
       folder: "invoices",
-      public_id: invoiceNumber
+      public_id: invoiceNumber,
     });
 
     fs.unlinkSync(filePath);
 
     return uploadResult.secure_url;
-
   } catch (err) {
     console.error("Invoice error:", err);
     throw err;

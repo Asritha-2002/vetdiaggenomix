@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
+    "@sparticuz/chromium": "^147.0.2",
     "axios": "^1.15.2",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.9.0",
