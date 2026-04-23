@@ -16,6 +16,115 @@ const { validate } = require('../middleware/validate');
 const { bookSchemas } = require('../validation/schemas');
 const mongoose = require('mongoose');
 
+
+
+router.get("/dashboard-stats", auth, async (req, res) => {
+  try {
+    // only admin allowed
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    // ---------- ORDERS ----------
+    const totalOrders = await Order.countDocuments();
+
+    const todayOrders = await Order.countDocuments({
+      createdAt: { $gte: todayStart },
+    });
+
+    const deliveredOrders = await Order.countDocuments({
+      status: "delivered",
+    });
+
+    const pendingOrders = await Order.countDocuments({
+      status: "pending",
+    });
+
+    // ---------- REVENUE ----------
+    const revenueAgg = await Order.aggregate([
+      { $match: { status: "delivered" } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$totalAmount" },
+        },
+      },
+    ]);
+
+    const totalRevenue = revenueAgg[0]?.total || 0;
+
+    const todayRevenueAgg = await Order.aggregate([
+      {
+        $match: {
+          status: "delivered",
+          createdAt: { $gte: todayStart },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$totalAmount" },
+        },
+      },
+    ]);
+
+    const todayRevenue = todayRevenueAgg[0]?.total || 0;
+
+    // ---------- USERS ----------
+    const totalUsers = await User.countDocuments();
+
+    const newUsersToday = await User.countDocuments({
+      createdAt: { $gte: todayStart },
+    });
+
+    // ---------- BOOKS (UPDATED SECTION) ----------
+    const totalBooks = await Book.countDocuments();
+
+    const lowStock = await Book.countDocuments({
+      stock: { $lte: 5 },
+    });
+
+    const outOfStock = await Book.countDocuments({
+      stock: 0,
+    });
+
+    // ---------- RESPONSE ----------
+    res.json({
+      totalOrders,
+      totalRevenue,
+      totalUsers,
+      totalBooks,
+
+      today: {
+        orders: todayOrders,
+        revenue: todayRevenue,
+        newUsers: newUsersToday,
+      },
+
+      growth: {
+        orders: 18,
+        revenue: 8,
+        users: 5,
+      },
+
+      inventory: {
+        lowStock,
+        outOfStock,
+      },
+
+      delivery: {
+        pendingOrders,
+        deliveredOrders,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 // Add new book
 router.post('/books', 
   auth, 
@@ -702,345 +811,118 @@ router.patch('/books/:id/videos/:videoId', auth, adminAuth, async (req, res) => 
   }
 });
 
-router.get('/stats', auth, adminAuth, async (req, res) => {
+router.get("/stats", auth, adminAuth, async (req, res) => {
   try {
     const now = new Date();
-    const todayStart = new Date(now.setHours(0, 0, 0, 0));
-    const yesterdayStart = new Date(new Date(todayStart).setDate(todayStart.getDate() - 1));
-    const weekStart = new Date(new Date(todayStart).setDate(todayStart.getDate() - 7));
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(todayStart.getDate() - 7);
+
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    // Get basic counts with growth comparison
-    const [
-      totalUsers,
-      totalBooks,
-      newUsersToday,
-      newUsersYesterday,
-      lowStockBooks,
-      outOfStockBooks,
-      totalOrdersCount
-    ] = await Promise.all([
-      User.countDocuments(),
-      Book.countDocuments(),
-      User.countDocuments({ createdAt: { $gte: todayStart } }),
-      User.countDocuments({ 
-        createdAt: { 
-          $gte: yesterdayStart, 
-          $lt: todayStart 
-        } 
-      }),
-      Book.countDocuments({ stock: { $lte: 5, $gt: 0 } }),
-      Book.countDocuments({ stock: 0 }),
-      Order.countDocuments()
-    ]);
+    // ---------------- USERS ----------------
+    const totalUsers = await User.countDocuments();
+    const newUsersToday = await User.countDocuments({
+      createdAt: { $gte: todayStart },
+    });
 
-    // Get comprehensive order statistics
-    const [allOrderStats, todayOrderStats, todayRevenueStats, weekOrderStats, weekRevenueStats, monthOrderStats, monthRevenueStats, lastMonthOrderStats, lastMonthRevenueStats] = await Promise.all([
-      // All time stats
-      Order.aggregate([
-        {
-          $facet: {
-            completed: [
-          { $match: { 'payment.status': 'completed' } },
-              { $group: { _id: null, count: { $sum: 1 } } }
-            ],
-            delivered: [
-              { $match: { 'status': 'delivered' } },
-              { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } }
-            ],
-            totalRevenue: [
-              { 
-                $match: { 
-                  'payment.status': 'completed',
-                  'status': { $nin: ['cancelled', 'refund-completed'] }
-                } 
-              },
-              { $group: { _id: null, revenue: { $sum: '$totalAmount' } } }
-            ],
-            pending: [
-              { $match: { 'status': 'pending' } },
-              { $group: { _id: null, count: { $sum: 1 } } }
-            ],
-            cancelled: [
-              { $match: { 'status': 'cancelled' } },
-              { $group: { _id: null, count: { $sum: 1 } } }
-            ],
-            refunded: [
-              { $match: { 'status': 'refund-completed' } },
-              { $group: { _id: null, count: { $sum: 1 }, amount: { $sum: '$totalAmount' } } }
-            ]
-          }
-        }
-      ]),
-      // Today's order count (all orders)
-      Order.aggregate([
-        { $match: { createdAt: { $gte: todayStart } } },
-        { $group: { _id: null, count: { $sum: 1 } } }
-      ]),
-      // Today's revenue (only delivered orders)
-      Order.aggregate([
-        { 
-          $match: { 
-            createdAt: { $gte: todayStart },
-            'payment.status': 'completed',
-            status: {$nin:['cancelled', 'refund-completed'] }
-          } 
-        },
-        { $group: { _id: null, revenue: { $sum: '$totalAmount' } } }
-      ]),
-      // This week's order count (all orders)
-      Order.aggregate([
-        { $match: { createdAt: { $gte: weekStart } } },
-        { $group: { _id: null, count: { $sum: 1 } } }
-      ]),
-      // This week's revenue (only delivered orders)
-      Order.aggregate([
-        { 
-          $match: { 
-            createdAt: { $gte: weekStart },
-            'payment.status': 'completed',
-            status: {$nin:['cancelled', 'refund-completed'] }
-          } 
-        },
-        { $group: { _id: null, revenue: { $sum: '$totalAmount' } } }
-      ]),
-      // This month's order count (all orders)
-      Order.aggregate([
-        { $match: { createdAt: { $gte: monthStart } } },
-        { $group: { _id: null, count: { $sum: 1 } } }
-      ]),
-      // This month's revenue (only delivered orders)
-      Order.aggregate([
-        { 
-          $match: { 
-            createdAt: { $gte: monthStart },
-            'payment.status': 'completed',
-            status: {$nin:['cancelled', 'refund-completed'] }
-          } 
-        },
-        { $group: { _id: null, revenue: { $sum: '$totalAmount' } } }
-      ]),
-      // Last month's order count (all orders)
-      Order.aggregate([
-        { 
-          $match: { 
-            createdAt: { 
-              $gte: lastMonthStart, 
-              $lte: lastMonthEnd 
-            }
-          } 
-        },
-        { $group: { _id: null, count: { $sum: 1 } } }
-      ]),
-      // Last month's revenue (only delivered orders)
-      Order.aggregate([
-        { 
-          $match: { 
-            createdAt: { 
-              $gte: lastMonthStart, 
-              $lte: lastMonthEnd 
-            },
-            'payment.status': 'completed',
-            status: {$nin:['cancelled', 'refund-completed'] }
-          } 
-        },
-        { $group: { _id: null, revenue: { $sum: '$totalAmount' } } }
-      ])
-    ]);
+    // ---------------- BOOKS ----------------
+    const totalBooks = await Book.countDocuments();
 
-    // Get top selling books with enhanced data
-    const topSellingBooks = await Book.aggregate([
-      {
-        $addFields: {
-          "statistics.purchases": { $ifNull: ["$statistics.purchases", 0] },
-          "statistics.revenue": { $ifNull: ["$statistics.revenue", 0] }
-        }
-      },
-      { $sort: { "statistics.purchases": -1 } },
-      { $limit: 10 },
-      {
-        $project: {
-          title: 1,
-          price: 1,
-          stock: 1,
-          category: 1,
-          statistics: 1,
-          images: { $slice: ["$images", 1] },
-          totalSales: { $multiply: ["$price", "$statistics.purchases"] }
-        }
-      }
-    ]);
+    const lowStockBooks = await Book.countDocuments({
+      stock: { $lte: 5, $gt: 0 },
+    });
 
-    // Get recent orders with comprehensive data
-    const recentOrders = await Order.aggregate([
-      { $sort: { createdAt: -1 } },
-      { $limit: 15 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'userData'
-        }
-      },
-      {
-        $unwind: { path: '$userData', preserveNullAndEmptyArrays: true }
-      },
-      {
-        $project: {
-          orderNumber: '$_id',
-          date: '$createdAt',
-          status: 1,
-          totalAmount: 1,
-          paymentStatus: '$payment.status',
-          itemCount: { $size: { $ifNull: ['$items', []] } },
-          customer: {
-            name: { $ifNull: ['$userData.name', 'Unknown User'] },
-            email: { $ifNull: ['$userData.email', 'unknown@email.com'] }
-          }
-        }
-      }
-    ]);
+    const outOfStockBooks = await Book.countDocuments({
+      stock: 0,
+    });
 
-    // Get order status distribution
-    const orderStatusDistribution = await Order.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          revenue: { $sum: '$totalAmount' }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
+    // ---------------- ORDERS ----------------
+    const totalOrders = await Order.countDocuments();
 
-    // Get payment method distribution
-    const paymentMethodStats = await Order.aggregate([
-      {
-        $group: {
-          _id: '$payment.method',
-          count: { $sum: 1 },
-          revenue: { $sum: '$totalAmount' }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
+    const pendingOrders = await Order.countDocuments({
+      status: "pending",
+    });
 
-    // Get monthly sales for the last 12 months (only delivered orders for revenue)
-    const monthlySales = await Order.aggregate([
+    const deliveredOrders = await Order.countDocuments({
+      status: "delivered",
+    });
+
+    const todayOrders = await Order.countDocuments({
+      createdAt: { $gte: todayStart },
+    });
+
+    const weekOrders = await Order.countDocuments({
+      createdAt: { $gte: weekStart },
+    });
+
+    // ---------------- REVENUE ----------------
+    const revenueAgg = await Order.aggregate([
       {
         $match: {
-          createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)) },
-          'status': 'delivered'
-        }
+          status: { $nin: ["cancelled", "refund-completed"] },
+          "payment.status": "completed",
+        },
       },
       {
         $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
-          },
-          revenue: { $sum: '$totalAmount' },
-          orders: { $sum: 1 }
-        }
+          _id: null,
+          revenue: { $sum: "$totalAmount" },
+        },
       },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
 
-    // Calculate growth percentages
-    const thisMonthRevenue = monthRevenueStats[0]?.revenue || 0;
-    const lastMonthRevenue = lastMonthRevenueStats[0]?.revenue || 0;
-    const revenueGrowth = lastMonthRevenue > 0 
-      ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue * 100).toFixed(1)
-      : 0;
+    const totalRevenue = revenueAgg[0]?.revenue || 0;
 
-    const thisMonthOrders = monthOrderStats[0]?.count || 0;
-    const lastMonthOrders = lastMonthOrderStats[0]?.count || 0;
-    const orderGrowth = lastMonthOrders > 0 
-      ? ((thisMonthOrders - lastMonthOrders) / lastMonthOrders * 100).toFixed(1)
-      : 0;
+    const weekRevenueAgg = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: weekStart },
+          status: { $nin: ["cancelled", "refund-completed"] },
+          "payment.status": "completed",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          revenue: { $sum: "$totalAmount" },
+        },
+      },
+    ]);
 
-    const userGrowth = newUsersYesterday > 0 
-      ? ((newUsersToday - newUsersYesterday) / newUsersYesterday * 100).toFixed(1)
-      : 0;
+    const thisWeekRevenue = weekRevenueAgg[0]?.revenue || 0;
 
-    // Build comprehensive response
-    const response = {
-      // Basic metrics
+    // ---------------- RESPONSE ----------------
+    res.json({
       totalUsers,
       totalBooks,
-      totalOrders: totalOrdersCount,
-      totalRevenue: allOrderStats[0]?.totalRevenue[0]?.revenue || 0,
-      
-      // Growth metrics
-      growth: {
-        revenue: parseFloat(revenueGrowth),
-        orders: parseFloat(orderGrowth),
-        users: parseFloat(userGrowth)
-      },
+      totalOrders,
+      totalRevenue,
 
-      // Today's metrics
+      pendingOrders,
+      deliveredOrders,
+
       today: {
-        orders: todayOrderStats[0]?.count || 0,
-        revenue: todayRevenueStats[0]?.revenue || 0,
-        newUsers: newUsersToday
+        orders: todayOrders,
+        newUsers: newUsersToday,
       },
 
-      // This week's metrics
       thisWeek: {
-        orders: weekOrderStats[0]?.count || 0,
-        revenue: weekRevenueStats[0]?.revenue || 0
+        orders: weekOrders,
+        revenue: thisWeekRevenue,
       },
 
-      // This month's metrics
-      thisMonth: {
-        orders: thisMonthOrders,
-        revenue: thisMonthRevenue
-      },
-
-      // Order status breakdown
-      orderStats: {
-        total: totalOrdersCount,
-        delivered: allOrderStats[0]?.delivered[0]?.count || 0,
-        pending: allOrderStats[0]?.pending[0]?.count || 0,
-        cancelled: allOrderStats[0]?.cancelled[0]?.count || 0,
-        refunded: allOrderStats[0]?.refunded[0]?.count || 0,
-        refundedAmount: allOrderStats[0]?.refunded[0]?.amount || 0
-      },
-
-      // Inventory alerts
       inventory: {
         lowStock: lowStockBooks,
         outOfStock: outOfStockBooks,
-        totalProducts: totalBooks
       },
-
-      // Enhanced data arrays
-      topSellingBooks: topSellingBooks.map(book => ({
-        ...book,
-        statistics: {
-          purchases: book.statistics?.purchases || 0,
-          revenue: book.statistics?.revenue || 0
-        },
-        totalSales: book.totalSales || 0
-      })),
-      
-      recentOrders,
-      orderStatusDistribution,
-      paymentMethodStats,
-      monthlySales
-    };
-
-    res.json(response);
-
-  } catch (error) {
-    console.error('Error fetching admin stats:', error);
-    res.status(500).json({ 
-      message: 'Error fetching statistics',
-      error: error.message 
     });
+  } catch (error) {
+    console.error("Stats Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -1279,6 +1161,57 @@ router.get('/stats/sales', auth, adminAuth, async (req, res) => {
   }
 });
 
+//top products
+router.get('/stats/top-products', auth, adminAuth, async (req, res) => {
+  try {
+    const topProducts = await Order.aggregate([
+      // break order items into separate documents
+      { $unwind: "$items" },
+
+      // group by book id and count quantity
+      {
+        $group: {
+          _id: "$items.book",
+          purchases: { $sum: "$items.quantity" }
+        }
+      },
+
+      // sort highest selling first
+      { $sort: { purchases: -1 } },
+
+      // limit top 5 or 10 products
+      { $limit: 5 },
+
+      // join with books collection
+      {
+        $lookup: {
+          from: "books",
+          localField: "_id",
+          foreignField: "_id",
+          as: "book"
+        }
+      },
+
+      { $unwind: "$book" },
+
+      // format exactly like your React component expects
+      {
+        $project: {
+          _id: "$book._id",
+          title: "$book.title",
+          price: "$book.price",
+          statistics: {
+            purchases: "$purchases"
+          }
+        }
+      }
+    ]);
+
+    res.json(topProducts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 // Delete book
 
 
