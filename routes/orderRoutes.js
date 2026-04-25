@@ -37,53 +37,62 @@ var pgInstance = new Razorpay({
 
 
 
-router.post("/:id/invoice", auth, async (req, res) => {
-  try {
-    const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    }).populate("items.book user");
+// router.post("/:id/invoice", auth, async (req, res) => {
+//   try {
+//     let order;
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
+//     if (req.user.isAdmin) {
+//       // ✅ Admin can access ANY order
+//       order = await Order.findById(req.params.id)
+//         .populate("items.book user");
+//     } else {
+//       // ✅ User → only their own order
+//       order = await Order.findOne({
+//         _id: req.params.id,
+//         user: req.user.id,
+//       }).populate("items.book user");
+//     }
 
-    if (order.payment?.status !== "completed") {
-      return res.status(400).json({ message: "Payment not completed yet" });
-    }
+//     if (!order) {
+//       return res.status(404).json({ message: "Order not found" });
+//     }
 
-    if (order.orderDetails?.invoice?.url) {
-      return res.json({
-        message: "Invoice already exists",
-        invoice: order.orderDetails.invoice,
-      });
-    }
+//     if (order.payment?.status !== "completed") {
+//       return res.status(400).json({ message: "Payment not completed yet" });
+//     }
 
-    const invoiceNumber = `INV-${Date.now()}-${order._id.toString().slice(-4)}`;
+//     if (order.orderDetails?.invoice?.url) {
+//       return res.json({
+//         message: "Invoice already exists",
+//         invoice: order.orderDetails.invoice,
+//       });
+//     }
 
-    order.orderDetails.invoice = {
-      number: invoiceNumber,
-      generatedAt: new Date(),
-      url: null,
-    };
+//     const invoiceNumber = `INV-${Date.now()}-${order._id.toString().slice(-4)}`;
 
-    await order.save();
+//     order.orderDetails.invoice = {
+//       number: invoiceNumber,
+//       generatedAt: new Date(),
+//       url: null,
+//     };
 
-    const invoiceUrl = await generateInvoice(order);
+//     await order.save();
 
-    order.orderDetails.invoice.url = invoiceUrl;
-    await order.save();
+//     const invoiceUrl = await generateInvoice(order);
 
-    return res.json({
-      message: "Invoice generated successfully",
-      invoice: order.orderDetails.invoice,
-    });
+//     order.orderDetails.invoice.url = invoiceUrl;
+//     await order.save();
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
-  }
-});
+//     return res.json({
+//       message: "Invoice generated successfully",
+//       invoice: order.orderDetails.invoice,
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: error.message });
+//   }
+// });
 
 
 
